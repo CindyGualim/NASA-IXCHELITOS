@@ -1,0 +1,12 @@
+# Datos descargados (se regeneran con scripts/download_data.py)
+data/raw/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+dist/
