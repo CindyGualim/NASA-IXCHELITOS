@@ -13,7 +13,7 @@ import argparse
 import json
 import sys
 import time
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import joblib
@@ -57,8 +57,18 @@ def simular_astronauta(idx, seed=1000):
 
 
 def construir_dataset(n, workers=None):
+    """Simula n astronautas en paralelo y muestra una barra de progreso con tiempo estimado."""
+    t0, res = time.time(), {}
     with ProcessPoolExecutor(max_workers=workers) as ex:
-        res = list(ex.map(simular_astronauta, range(n)))
+        futs = {ex.submit(simular_astronauta, i): i for i in range(n)}
+        for k, f in enumerate(as_completed(futs), 1):
+            res[futs[f]] = f.result()
+            el = time.time() - t0
+            eta = el / k * (n - k)
+            barra = "#" * int(30 * k / n) + "-" * (30 - int(30 * k / n))
+            print(f"\r  [{barra}] {k}/{n} astronautas  {el:4.0f} s  faltan ~{eta:3.0f} s", end="", flush=True)
+    print()
+    res = [res[i] for i in range(n)]
     df = pd.DataFrame([f for filas, _ in res for f in filas])
     return df, [m for _, m in res]
 
@@ -118,23 +128,25 @@ if __name__ == "__main__":
     MODELS.mkdir(exist_ok=True)
 
     t0 = time.time()
-    print("Normas desde datos reales...")
+    print("[1/5] Normas desde datos reales...", flush=True)
     calcular_normas()
-    print(f"Simulando {args.n} astronautas (motor Ixchel completo, 40 días de línea base + 180 de misión)...")
+    print(f"[2/5] Simulando {args.n} astronautas (motor Ixchel completo, 40 días de línea base + 180 de misión)...", flush=True)
     df, meta = construir_dataset(args.n, args.workers)
     df.to_csv(MODELS / "dataset_riesgo.csv.gz", index=False)
-    print(f"  {len(df)} días en {time.time() - t0:.0f} s")
+    print(f"  {len(df)} días simulados en {time.time() - t0:.0f} s", flush=True)
 
     X_cols = [c for c in df.columns if not c.startswith("y_") and c not in
               ("astronauta", "dia", "entorno", "escenarios", "reglas_dominio_alerta")]
     Y_cols = [f"y_{d}" for d in DOMS]
     tr, te = next(GroupShuffleSplit(n_splits=1, test_size=0.3, random_state=0).split(df, groups=df["astronauta"]))
     dtr, dte = df.iloc[tr], df.iloc[te]
-    print(f"Entrenamiento: {dtr['astronauta'].nunique()} astronautas / prueba: {dte['astronauta'].nunique()} (nunca vistos)")
+    print(f"[3/5] Entrenando Random Forest. Entrenamiento: {dtr['astronauta'].nunique()} astronautas / prueba: {dte['astronauta'].nunique()} (nunca vistos)")
 
     rf = RandomForestClassifier(n_estimators=300, min_samples_leaf=3, class_weight="balanced_subsample",
-                                n_jobs=-1, random_state=0)
+                                n_jobs=-1, random_state=0, verbose=1)
     rf.fit(dtr[X_cols], dtr[Y_cols])
+    print("[4/5] Evaluando en astronautas nunca vistos y entrenando el árbol explicable...", flush=True)
+    rf.set_params(verbose=0)
     P = np.column_stack(rf.predict(dte[X_cols]).T) if False else rf.predict(dte[X_cols])
     dte = dte.copy()
     for i, d in enumerate(DOMS):
@@ -171,6 +183,7 @@ if __name__ == "__main__":
     metricas["arbol_explicable"] = {"profundidad": 4, **resumen_binario(dte["y_global"], p_arbol),
                                     **retraso_deteccion(dte, "arbol_global"), "reglas_texto": export_text(arbol, feature_names=expl_cols)}
 
+    print("[5/5] Guardando modelos y métricas en models/ ...", flush=True)
     clases = ["VERDE", "AMARILLO", "ROJO"]
     joblib.dump({"modelo": rf, "X_cols": X_cols, "dominios": DOMS}, MODELS / "riesgo_rf.joblib", compress=3)
     joblib.dump({"modelo": arbol, "X_cols": expl_cols}, MODELS / "arbol_semaforo.joblib")

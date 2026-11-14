@@ -105,7 +105,7 @@ if __name__ == "__main__":
     for i, (tr, te) in enumerate(GroupKFold(n_splits=5).split(df, groups=df["sujeto"])):
         m = nuevo_rf().fit(df.iloc[tr][X_cols], df.iloc[tr]["etapa"])
         pred[te] = m.predict(df.iloc[te][X_cols])
-        print(f"  grupo {i + 1}/5 listo")
+        print(f"  grupo {i + 1}/5 listo  ({time.time() - t0:.0f} s)", flush=True)
     y = df["etapa"].to_numpy()
     df["pred"] = pred
 
@@ -133,6 +133,7 @@ if __name__ == "__main__":
     }
     print(json.dumps({k: v for k, v in met.items() if k != "matriz_confusion"}, indent=1, ensure_ascii=False))
 
+    print("Entrenando el modelo final con todos los datos...", flush=True)
     final = nuevo_rf().fit(df[X_cols], df["etapa"])
     MODELS.mkdir(exist_ok=True)
     joblib.dump({"modelo": final, "X_cols": X_cols}, MODELS / "sueno_rf.joblib", compress=3)
