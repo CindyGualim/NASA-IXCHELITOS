@@ -2,6 +2,8 @@
 
 Archivo principal: `base_conocimiento_psicologica.json` (UTF-8). Sale del documento "Documentación base: monitor psicológico de astronautas" (rev 18) y es una herramienta de apoyo, no un dispositivo médico.
 
+Versión para leer: `base_conocimiento_escrita.md` tiene el mismo contenido en texto corrido, con bibliografía al final. Es la más cómoda para quien revise los protocolos clínicos; el código usa solo el JSON.
+
 ## Cómo está organizado
 
 | Clave | Qué contiene |
