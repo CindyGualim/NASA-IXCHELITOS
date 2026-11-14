@@ -14,6 +14,9 @@ alertas de **apoyo a la decisión** (no diagnostica; confirma el Comandante o el
 | `features.py` | Variables del modelo a partir de la salida diaria del motor (igual offline y online). |
 | `entrenar_riesgo.py` | Entrena y evalúa el modelo de riesgo (Random Forest + árbol explicable). |
 | `modelo_sueno.py` | Entrena y valida el modelo de sueño con datos reales (etapas desde la FC). |
+| `autoreporte.py` | **Autorreporte del astronauta**: puntúa escalas, aplica las reglas R01–R26, sugiere formularios y guía protocolos. Ver sección abajo. |
+| `conocimiento/` | Base de conocimiento psicológica (JSON + LEEME): preguntas, escalas, reglas y protocolos. Funciona offline. |
+| `demo_autoreporte.py` | Simula 60 días de un astronauta que empeora y muestra las alertas del autorreporte. |
 | `api.py` | API REST para la web (FastAPI). `uvicorn api:app --reload` |
 | `replay.py` | Valida el motor con datos reales de una persona (CSV diario). |
 | `requirements.txt` | Dependencias: `pip install -r requirements.txt` |
@@ -130,6 +133,63 @@ GET  /astronautas/{id}/estado
 ```
 Respuesta: `nivel` (VERDE/AMARILLO/ROJO), `dominios`, `z`, `alertas`, `recomendaciones`,
 `eventos_activos`, `factores_contexto`, `ml` (score en modo sombra). El estado vive en memoria.
+
+## Autorreporte: lo que el astronauta cuenta (nuevo)
+
+Los sensores no lo ven todo: una persona puede estar mal antes de que cambie su sueño o su ritmo cardíaco.
+Esta capa añade **la voz del astronauta** y la une a las alertas del motor.
+
+**Cómo funciona, en 4 pasos**
+1. **Check-in diario (1 min):** ánimo, estrés, energía y una pregunta de seguridad. Se compara con la
+   **línea base personal** (primeros 14 días), nunca con una norma de población.
+2. **Tendencias:** si el check-in baja varios días seguidos avisa (AMARILLO); si la caída es marcada o cae
+   en varios módulos a la vez (autorreporte + sueño + actividad…) sube a ROJO. Si hay un confusor
+   (CO₂ ≥ 2,3 mmHg, ruido alto, sueño ≤ 5 h) la alerta se marca como **causa ambiental**, no psicológica.
+3. **Selector de estado:** el astronauta marca cómo se siente ("decaído", "nervioso", "duermo mal",
+   "perdí a alguien"…) y el sistema propone el formulario adecuado: PHQ-4/PHQ-9 (ánimo), GAD-7 (ansiedad),
+   ISI (insomnio), PCL-5 (trauma), BGQ (duelo), MDQ, AUDIT-C, NASA-TLX, WHO-5, SPANE.
+4. **Protocolos:** según la alerta, entrega la guía paso a paso (GP1 muerte de un tripulante, GP2 muerte de un
+   familiar, GP3 riesgo suicida, GP4 confusión/agitación, GP5 cribado y derivación, GP6 terapia con retardo).
+
+**La seguridad siempre manda.** SF1 distinto de 0, ASQ positivo (o negarse a contestar), PHQ-9 ítem 9 > 0 o un
+compañero que reporta CO3/CO4 → ROJO inmediato, sin esperar tendencias. Ninguna otra regla lo baja.
+
+**Niveles:** ámbar/firme → AMARILLO · roja/inmediata → ROJO (se conserva `nivel_kb` con el original).
+
+```python
+from ixchel_core import AstronautMonitor
+from autoreporte import MonitorAutoreporte, proponer_formularios, formulario, guia_protocolo
+
+mon = MonitorAutoreporte(AstronautMonitor(filas_linea_base))      # también envuelve IxchelMonitor
+out = mon.ingest(fila_del_dia,
+                 autoreporte={"checkin": {"CK1": 4, "CK3": 2, "CK4": 2, "CK5": 4, "CK7": 4},
+                              "seguridad": {"SF1": 0}},
+                 contexto={"dias_desde_evento": 45, "meses_desde_muerte": 8})
+out["nivel"], out["alertas"], out["protocolos"], out["seguridad_activa"]
+
+proponer_formularios(["ST02", "ST06"])  # qué formulario sigue (seguridad y pérdida primero)
+formulario("Q_PHQ9")                    # ítems y escalas para dibujar en la app
+guia_protocolo("GP3")                   # pasos del protocolo
+```
+Probar: `python demo_autoreporte.py` · Tests: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest tests/test_autoreporte.py -q`
+
+**Para la web:** en `api.py` basta envolver el monitor con `MonitorAutoreporte(...)` y pasar `autoreporte={...}`
+a `ingest`. Formularios por formulario (`formulario("Q_...")`) devuelven los textos y escalas.
+
+**Reglas implementadas:** R01–R05, R08, R09 (como R03), R11–R26 y la tendencia de duelo. **No implementadas:**
+R06 (necesita tareas cognitivas), R07 (necesita fiabilidad real de las escalas) y R10 (necesita datos de comunicación).
+
+### Límites del autorreporte (decirlo en el pitch)
+- Es **apoyo a la decisión, no diagnóstico**: toda alerta requiere confirmación humana.
+- Los protocolos clínicos son una **propuesta pendiente de revisión** de un psicólogo o psiquiatra con experiencia
+  aeroespacial; no usar con personas reales sin ella.
+- Las traducciones de los ítems son literales y **no están validadas**. Los ítems de PCL-5, ISI, BGQ, MDQ y PG-13-R
+  vienen del archivo del equipo; el corte de 30 del PG-13-R **no** se aplica a esos ítems (PG-13-R no alerta).
+- Los umbrales de tendencia (EWMA/CUSUM, z de −1,0 y −1,5, pendiente de R11) son diseño propio, **por calibrar** con
+  datos reales; con los parámetros actuales son sensibles (detectan en 1–3 días).
+- Las reglas son diseño propio [D]; ningún manual de NASA publica un semáforo con estos cortes.
+- La base de conocimiento (168 fuentes, 108 hechos) está en `conocimiento/`; su `LEEME.md` explica las etiquetas de
+  confiabilidad (B fuente abierta, P criterio del equipo, D diseño propio).
 
 ## Límites conocidos (decirlo en el pitch)
 - Los datos de la demo son **simulados**; los límites ambientales (CO2, ruido, presión, 600 mSv)

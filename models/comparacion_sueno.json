@@ -1,0 +1,116 @@
+{
+  "rf-base-suavizado1": {
+    "exactitud": 0.556,
+    "f1_macro": 0.557,
+    "kappa": 0.389,
+    "dormido_vs_despierto": 0.888,
+    "error_sueno_h_abs": 0.44,
+    "error_eficiencia_abs_pct": 6.3
+  },
+  "rf-base-suavizado3": {
+    "exactitud": 0.558,
+    "f1_macro": 0.56,
+    "kappa": 0.392,
+    "dormido_vs_despierto": 0.889,
+    "error_sueno_h_abs": 0.44,
+    "error_eficiencia_abs_pct": 6.2
+  },
+  "rf-base-suavizado5": {
+    "exactitud": 0.559,
+    "f1_macro": 0.561,
+    "kappa": 0.394,
+    "dormido_vs_despierto": 0.89,
+    "error_sueno_h_abs": 0.44,
+    "error_eficiencia_abs_pct": 6.2
+  },
+  "rf-base-suavizado9": {
+    "exactitud": 0.562,
+    "f1_macro": 0.564,
+    "kappa": 0.398,
+    "dormido_vs_despierto": 0.891,
+    "error_sueno_h_abs": 0.44,
+    "error_eficiencia_abs_pct": 6.2
+  },
+  "rf-extras-suavizado1": {
+    "exactitud": 0.558,
+    "f1_macro": 0.559,
+    "kappa": 0.391,
+    "dormido_vs_despierto": 0.888,
+    "error_sueno_h_abs": 0.45,
+    "error_eficiencia_abs_pct": 6.3
+  },
+  "rf-extras-suavizado3": {
+    "exactitud": 0.559,
+    "f1_macro": 0.561,
+    "kappa": 0.394,
+    "dormido_vs_despierto": 0.889,
+    "error_sueno_h_abs": 0.45,
+    "error_eficiencia_abs_pct": 6.3
+  },
+  "rf-extras-suavizado5": {
+    "exactitud": 0.561,
+    "f1_macro": 0.562,
+    "kappa": 0.396,
+    "dormido_vs_despierto": 0.889,
+    "error_sueno_h_abs": 0.45,
+    "error_eficiencia_abs_pct": 6.3
+  },
+  "rf-extras-suavizado9": {
+    "exactitud": 0.564,
+    "f1_macro": 0.565,
+    "kappa": 0.4,
+    "dormido_vs_despierto": 0.891,
+    "error_sueno_h_abs": 0.44,
+    "error_eficiencia_abs_pct": 6.2
+  },
+  "hgb-extras-suavizado1": {
+    "exactitud": 0.566,
+    "f1_macro": 0.566,
+    "kappa": 0.396,
+    "dormido_vs_despierto": 0.888,
+    "error_sueno_h_abs": 0.43,
+    "error_eficiencia_abs_pct": 6.1
+  },
+  "hgb-extras-suavizado3": {
+    "exactitud": 0.57,
+    "f1_macro": 0.57,
+    "kappa": 0.402,
+    "dormido_vs_despierto": 0.89,
+    "error_sueno_h_abs": 0.43,
+    "error_eficiencia_abs_pct": 6.1
+  },
+  "hgb-extras-suavizado5": {
+    "exactitud": 0.572,
+    "f1_macro": 0.572,
+    "kappa": 0.405,
+    "dormido_vs_despierto": 0.891,
+    "error_sueno_h_abs": 0.43,
+    "error_eficiencia_abs_pct": 6.0
+  },
+  "hgb-extras-suavizado9": {
+    "exactitud": 0.575,
+    "f1_macro": 0.575,
+    "kappa": 0.409,
+    "dormido_vs_despierto": 0.892,
+    "error_sueno_h_abs": 0.42,
+    "error_eficiencia_abs_pct": 6.0
+  },
+  "generalizacion_a_sleep_accel": {
+    "modelo": "hgb-extras-suavizado9",
+    "exactitud": 0.568,
+    "f1_macro": 0.543,
+    "kappa": 0.388,
+    "dormido_vs_despierto": 0.895,
+    "error_sueno_h_abs": 0.43,
+    "error_eficiencia_abs_pct": 5.9
+  },
+  "cv_ambos_datasets": {
+    "modelo": "hgb-extras-suavizado9",
+    "exactitud": 0.577,
+    "f1_macro": 0.574,
+    "kappa": 0.408,
+    "dormido_vs_despierto": 0.894,
+    "error_sueno_h_abs": 0.42,
+    "error_eficiencia_abs_pct": 5.8
+  }
+}

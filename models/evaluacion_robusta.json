@@ -1,0 +1,424 @@
+{
+  "cv_5_grupos": {
+    "random_forest": {
+      "sensibilidad": {
+        "media": 0.955,
+        "desv": 0.009
+      },
+      "precision": {
+        "media": 0.969,
+        "desv": 0.01
+      },
+      "falsas_alarmas_por_100_dias_sanos": {
+        "media": 1.24,
+        "desv": 0.546
+      }
+    },
+    "reglas_motor": {
+      "sensibilidad": {
+        "media": 0.736,
+        "desv": 0.039
+      },
+      "precision": {
+        "media": 0.835,
+        "desv": 0.049
+      },
+      "falsas_alarmas_por_100_dias_sanos": {
+        "media": 5.42,
+        "desv": 1.026
+      }
+    },
+    "por_grupo": [
+      {
+        "sensibilidad": 0.956,
+        "precision": 0.988,
+        "falsas_alarmas_por_100_dias_sanos": 0.3,
+        "episodios": 19,
+        "detectados": 19,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      {
+        "sensibilidad": 0.97,
+        "precision": 0.963,
+        "falsas_alarmas_por_100_dias_sanos": 1.8,
+        "episodios": 29,
+        "detectados": 29,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      {
+        "sensibilidad": 0.944,
+        "precision": 0.957,
+        "falsas_alarmas_por_100_dias_sanos": 1.7,
+        "episodios": 34,
+        "detectados": 34,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 0.0
+      },
+      {
+        "sensibilidad": 0.946,
+        "precision": 0.969,
+        "falsas_alarmas_por_100_dias_sanos": 1.0,
+        "episodios": 30,
+        "detectados": 30,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      {
+        "sensibilidad": 0.958,
+        "precision": 0.967,
+        "falsas_alarmas_por_100_dias_sanos": 1.4,
+        "episodios": 31,
+        "detectados": 31,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      }
+    ]
+  },
+  "sin_escenario": {
+    "co2_alto": {
+      "astronautas_prueba": 26,
+      "random_forest": {
+        "sensibilidad": 0.898,
+        "precision": 0.968,
+        "falsas_alarmas_por_100_dias_sanos": 1.0,
+        "episodios": 33,
+        "detectados": 32,
+        "no_detectados": 1,
+        "retraso_mediano_dias": 2.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.655,
+        "precision": 0.782,
+        "falsas_alarmas_por_100_dias_sanos": 6.4,
+        "episodios": 33,
+        "detectados": 29,
+        "no_detectados": 4,
+        "retraso_mediano_dias": 4.0
+      }
+    },
+    "deriva_psico": {
+      "astronautas_prueba": 36,
+      "random_forest": {
+        "sensibilidad": 0.815,
+        "precision": 0.99,
+        "falsas_alarmas_por_100_dias_sanos": 1.1,
+        "episodios": 43,
+        "detectados": 43,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 5.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.831,
+        "precision": 0.941,
+        "falsas_alarmas_por_100_dias_sanos": 6.8,
+        "episodios": 43,
+        "detectados": 43,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 4.0
+      }
+    },
+    "desacondicionamiento": {
+      "astronautas_prueba": 35,
+      "random_forest": {
+        "sensibilidad": 0.466,
+        "precision": 0.969,
+        "falsas_alarmas_por_100_dias_sanos": 1.7,
+        "episodios": 47,
+        "detectados": 33,
+        "no_detectados": 14,
+        "retraso_mediano_dias": 2.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.768,
+        "precision": 0.924,
+        "falsas_alarmas_por_100_dias_sanos": 7.0,
+        "episodios": 47,
+        "detectados": 45,
+        "no_detectados": 2,
+        "retraso_mediano_dias": 4.0
+      }
+    },
+    "friccion_social": {
+      "astronautas_prueba": 39,
+      "random_forest": {
+        "sensibilidad": 0.516,
+        "precision": 0.964,
+        "falsas_alarmas_por_100_dias_sanos": 1.9,
+        "episodios": 51,
+        "detectados": 36,
+        "no_detectados": 15,
+        "retraso_mediano_dias": 1.5
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.692,
+        "precision": 0.914,
+        "falsas_alarmas_por_100_dias_sanos": 6.3,
+        "episodios": 51,
+        "detectados": 49,
+        "no_detectados": 2,
+        "retraso_mediano_dias": 4.0
+      }
+    },
+    "luto": {
+      "astronautas_prueba": 36,
+      "random_forest": {
+        "sensibilidad": 0.907,
+        "precision": 0.915,
+        "falsas_alarmas_por_100_dias_sanos": 4.5,
+        "episodios": 58,
+        "detectados": 58,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.756,
+        "precision": 0.821,
+        "falsas_alarmas_por_100_dias_sanos": 8.9,
+        "episodios": 58,
+        "detectados": 58,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 2.0
+      }
+    },
+    "privacion_sueno": {
+      "astronautas_prueba": 31,
+      "random_forest": {
+        "sensibilidad": 0.896,
+        "precision": 0.972,
+        "falsas_alarmas_por_100_dias_sanos": 2.2,
+        "episodios": 50,
+        "detectados": 46,
+        "no_detectados": 4,
+        "retraso_mediano_dias": 2.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.753,
+        "precision": 0.902,
+        "falsas_alarmas_por_100_dias_sanos": 6.9,
+        "episodios": 50,
+        "detectados": 47,
+        "no_detectados": 3,
+        "retraso_mediano_dias": 2.0
+      }
+    },
+    "tormenta_solar": {
+      "astronautas_prueba": 33,
+      "random_forest": {
+        "sensibilidad": 0.954,
+        "precision": 0.96,
+        "falsas_alarmas_por_100_dias_sanos": 1.5,
+        "episodios": 33,
+        "detectados": 33,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.775,
+        "precision": 0.776,
+        "falsas_alarmas_por_100_dias_sanos": 8.3,
+        "episodios": 33,
+        "detectados": 32,
+        "no_detectados": 1,
+        "retraso_mediano_dias": 2.0
+      }
+    }
+  },
+  "sin_entorno": {
+    "ISS": {
+      "astronautas_prueba": 82,
+      "random_forest": {
+        "sensibilidad": 0.951,
+        "precision": 0.972,
+        "falsas_alarmas_por_100_dias_sanos": 1.2,
+        "episodios": 74,
+        "detectados": 74,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.743,
+        "precision": 0.851,
+        "falsas_alarmas_por_100_dias_sanos": 5.6,
+        "episodios": 74,
+        "detectados": 71,
+        "no_detectados": 3,
+        "retraso_mediano_dias": 4.0
+      }
+    },
+    "Luna": {
+      "astronautas_prueba": 31,
+      "random_forest": {
+        "sensibilidad": 0.933,
+        "precision": 0.967,
+        "falsas_alarmas_por_100_dias_sanos": 1.2,
+        "episodios": 31,
+        "detectados": 31,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.72,
+        "precision": 0.85,
+        "falsas_alarmas_por_100_dias_sanos": 4.9,
+        "episodios": 31,
+        "detectados": 30,
+        "no_detectados": 1,
+        "retraso_mediano_dias": 2.5
+      }
+    },
+    "Marte": {
+      "astronautas_prueba": 47,
+      "random_forest": {
+        "sensibilidad": 0.965,
+        "precision": 0.958,
+        "falsas_alarmas_por_100_dias_sanos": 1.3,
+        "episodios": 38,
+        "detectados": 38,
+        "no_detectados": 0,
+        "retraso_mediano_dias": 1.0
+      },
+      "reglas_motor": {
+        "sensibilidad": 0.738,
+        "precision": 0.806,
+        "falsas_alarmas_por_100_dias_sanos": 5.5,
+        "episodios": 38,
+        "detectados": 36,
+        "no_detectados": 2,
+        "retraso_mediano_dias": 2.0
+      }
+    }
+  },
+  "ruido": {
+    "faltantes_0_ruido_0": {
+      "sensibilidad": 0.942,
+      "precision": 0.974,
+      "falsas_alarmas_por_100_dias_sanos": 1.0,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 1.0
+    },
+    "faltantes_0.1_ruido_0": {
+      "sensibilidad": 0.923,
+      "precision": 0.978,
+      "falsas_alarmas_por_100_dias_sanos": 0.8,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 1.0
+    },
+    "faltantes_0.3_ruido_0": {
+      "sensibilidad": 0.836,
+      "precision": 0.985,
+      "falsas_alarmas_por_100_dias_sanos": 0.5,
+      "episodios": 43,
+      "detectados": 42,
+      "no_detectados": 1,
+      "retraso_mediano_dias": 2.0
+    },
+    "faltantes_0.5_ruido_0": {
+      "sensibilidad": 0.603,
+      "precision": 0.995,
+      "falsas_alarmas_por_100_dias_sanos": 0.1,
+      "episodios": 43,
+      "detectados": 41,
+      "no_detectados": 2,
+      "retraso_mediano_dias": 5.0
+    },
+    "faltantes_0_ruido_0.5": {
+      "sensibilidad": 0.934,
+      "precision": 0.973,
+      "falsas_alarmas_por_100_dias_sanos": 1.0,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 1.0
+    },
+    "faltantes_0_ruido_1.0": {
+      "sensibilidad": 0.916,
+      "precision": 0.975,
+      "falsas_alarmas_por_100_dias_sanos": 0.9,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 1.0
+    },
+    "faltantes_0.3_ruido_1.0": {
+      "sensibilidad": 0.791,
+      "precision": 0.987,
+      "falsas_alarmas_por_100_dias_sanos": 0.4,
+      "episodios": 43,
+      "detectados": 41,
+      "no_detectados": 2,
+      "retraso_mediano_dias": 2.0
+    }
+  },
+  "umbral": {
+    "0.2": {
+      "sensibilidad": 0.991,
+      "precision": 0.889,
+      "falsas_alarmas_por_100_dias_sanos": 4.6,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 0.0
+    },
+    "0.3": {
+      "sensibilidad": 0.983,
+      "precision": 0.928,
+      "falsas_alarmas_por_100_dias_sanos": 2.9,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 0.0
+    },
+    "0.4": {
+      "sensibilidad": 0.964,
+      "precision": 0.951,
+      "falsas_alarmas_por_100_dias_sanos": 1.9,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 0.0
+    },
+    "0.5": {
+      "sensibilidad": 0.942,
+      "precision": 0.974,
+      "falsas_alarmas_por_100_dias_sanos": 1.0,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 1.0
+    },
+    "0.6": {
+      "sensibilidad": 0.91,
+      "precision": 0.985,
+      "falsas_alarmas_por_100_dias_sanos": 0.5,
+      "episodios": 43,
+      "detectados": 43,
+      "no_detectados": 0,
+      "retraso_mediano_dias": 1.0
+    },
+    "0.7": {
+      "sensibilidad": 0.87,
+      "precision": 0.994,
+      "falsas_alarmas_por_100_dias_sanos": 0.2,
+      "episodios": 43,
+      "detectados": 41,
+      "no_detectados": 2,
+      "retraso_mediano_dias": 2.0
+    },
+    "0.8": {
+      "sensibilidad": 0.809,
+      "precision": 0.997,
+      "falsas_alarmas_por_100_dias_sanos": 0.1,
+      "episodios": 43,
+      "detectados": 37,
+      "no_detectados": 6,
+      "retraso_mediano_dias": 4.0
+    },
+    "recomendado_falsas_le_1": "0.5"
+  }
+}
