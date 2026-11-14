@@ -1,0 +1,9 @@
+numpy
+scikit-learn>=1.4
+pandas
+scipy
+joblib
+fastapi
+uvicorn
+httpx
+pytest

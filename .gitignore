@@ -1,11 +1,14 @@
 # Datos descargados (se regeneran con scripts/download_data.py)
 data/raw/
+# Dataset simulado intermedio (se regenera con ixchel/entrenar_riesgo.py)
+models/dataset_riesgo.csv.gz
 
 # Python
 __pycache__/
 *.pyc
 .venv/
 .ipynb_checkpoints/
+.pytest_cache/
 
 # Node
 node_modules/

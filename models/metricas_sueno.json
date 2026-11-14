@@ -1,0 +1,55 @@
+{
+  "fuente": "PhysioNet BIDSleep 1.0.1 (etiquetas del experto); validación cruzada 5 grupos por persona",
+  "epocas": 215914,
+  "personas": 47,
+  "exactitud": 0.556,
+  "f1_macro": 0.558,
+  "kappa_cohen": 0.388,
+  "exactitud_dormido_vs_despierto": 0.889,
+  "exactitud_si_siempre_dice_ligero": 0.446,
+  "f1_por_etapa": {
+    "despierto": 0.544,
+    "ligero": 0.53,
+    "profundo": 0.592,
+    "REM": 0.566
+  },
+  "matriz_confusion": {
+    "orden": [
+      "despierto",
+      "ligero",
+      "profundo",
+      "REM"
+    ],
+    "valores": [
+      [
+        14272,
+        1736,
+        2872,
+        4970
+      ],
+      [
+        7886,
+        41445,
+        17078,
+        29886
+      ],
+      [
+        3188,
+        6137,
+        27047,
+        3536
+      ],
+      [
+        3301,
+        10929,
+        4403,
+        37228
+      ]
+    ]
+  },
+  "error_por_noche": {
+    "sueno_h_error_medio_h": -0.16,
+    "sueno_h_error_absoluto_medio_h": 0.43,
+    "eficiencia_error_absoluto_medio_pct": 6.2
+  }
+}

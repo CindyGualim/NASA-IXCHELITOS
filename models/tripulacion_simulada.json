@@ -1,0 +1,2103 @@
+[
+ {
+  "id": "A000",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 129,
+    "intensidad": 1.319046022998772
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 101,
+    "intensidad": 1.3798110245657336
+   }
+  ]
+ },
+ {
+  "id": "A001",
+  "entorno": "Luna",
+  "escenarios": []
+ },
+ {
+  "id": "A002",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A003",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A004",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 95,
+    "intensidad": 1.0021209659044328
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 115,
+    "intensidad": 0.9118101570717277
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 91,
+    "intensidad": 0.6286920763529831
+   }
+  ]
+ },
+ {
+  "id": "A005",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 87,
+    "intensidad": 1.232412724727508
+   }
+  ]
+ },
+ {
+  "id": "A006",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A007",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 107,
+    "intensidad": 0.8688981298296499
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 126,
+    "intensidad": 1.107403362894062
+   }
+  ]
+ },
+ {
+  "id": "A008",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 40,
+    "intensidad": 0.8130402215836411
+   }
+  ]
+ },
+ {
+  "id": "A009",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 71,
+    "intensidad": 0.8098295746542612
+   }
+  ]
+ },
+ {
+  "id": "A010",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 87,
+    "intensidad": 0.6916932062080164
+   }
+  ]
+ },
+ {
+  "id": "A011",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 46,
+    "intensidad": 1.0842691119676364
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 81,
+    "intensidad": 0.6093003550382077
+   }
+  ]
+ },
+ {
+  "id": "A012",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 123,
+    "intensidad": 0.7114346143814929
+   }
+  ]
+ },
+ {
+  "id": "A013",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 142,
+    "intensidad": 1.1717003256329817
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 41,
+    "intensidad": 1.257938845761144
+   }
+  ]
+ },
+ {
+  "id": "A014",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A015",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 100,
+    "intensidad": 1.2553469477975283
+   }
+  ]
+ },
+ {
+  "id": "A016",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 25,
+    "intensidad": 0.9577699348030309
+   }
+  ]
+ },
+ {
+  "id": "A017",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 15,
+    "intensidad": 0.7885780554908748
+   },
+   {
+    "tipo": "luto",
+    "inicio": 18,
+    "intensidad": 1.313446667901046
+   }
+  ]
+ },
+ {
+  "id": "A018",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 68,
+    "intensidad": 1.3140884325733027
+   }
+  ]
+ },
+ {
+  "id": "A019",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A020",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 141,
+    "intensidad": 1.3472948882497835
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 59,
+    "intensidad": 0.7416401597485436
+   }
+  ]
+ },
+ {
+  "id": "A021",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 56,
+    "intensidad": 0.6710621944627166
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 95,
+    "intensidad": 0.9882590843604421
+   }
+  ]
+ },
+ {
+  "id": "A022",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 19,
+    "intensidad": 1.3648667561052334
+   }
+  ]
+ },
+ {
+  "id": "A023",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 52,
+    "intensidad": 0.8591656734504441
+   }
+  ]
+ },
+ {
+  "id": "A024",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 84,
+    "intensidad": 0.6860895856150391
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 121,
+    "intensidad": 1.1568149547209619
+   }
+  ]
+ },
+ {
+  "id": "A025",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A026",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 104,
+    "intensidad": 1.0420428164951467
+   }
+  ]
+ },
+ {
+  "id": "A027",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 128,
+    "intensidad": 1.3201323292429819
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 141,
+    "intensidad": 0.7362995687871701
+   }
+  ]
+ },
+ {
+  "id": "A028",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 54,
+    "intensidad": 0.6767404700682257
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 62,
+    "intensidad": 1.3091582675454392
+   }
+  ]
+ },
+ {
+  "id": "A029",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 36,
+    "intensidad": 1.0523761308353734
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 144,
+    "intensidad": 1.390340862592487
+   }
+  ]
+ },
+ {
+  "id": "A030",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 31,
+    "intensidad": 0.7261279354392808
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 96,
+    "intensidad": 1.0004414089973719
+   }
+  ]
+ },
+ {
+  "id": "A031",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 52,
+    "intensidad": 1.3815681324454323
+   },
+   {
+    "tipo": "luto",
+    "inicio": 63,
+    "intensidad": 0.9631047681854793
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 111,
+    "intensidad": 0.8932126095610219
+   }
+  ]
+ },
+ {
+  "id": "A032",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 98,
+    "intensidad": 0.671332526238969
+   }
+  ]
+ },
+ {
+  "id": "A033",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 45,
+    "intensidad": 1.3234801113501629
+   },
+   {
+    "tipo": "luto",
+    "inicio": 103,
+    "intensidad": 0.6826957742653157
+   }
+  ]
+ },
+ {
+  "id": "A034",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 30,
+    "intensidad": 1.3077627451417908
+   }
+  ]
+ },
+ {
+  "id": "A035",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 36,
+    "intensidad": 1.1361759983833912
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 50,
+    "intensidad": 1.159020151518701
+   }
+  ]
+ },
+ {
+  "id": "A036",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 28,
+    "intensidad": 0.7555533964057862
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 55,
+    "intensidad": 0.7931157961002504
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 13,
+    "intensidad": 0.9103866398455703
+   }
+  ]
+ },
+ {
+  "id": "A037",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A038",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A039",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 137,
+    "intensidad": 1.2801132685339853
+   }
+  ]
+ },
+ {
+  "id": "A040",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A041",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 34,
+    "intensidad": 0.6823022930870717
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 55,
+    "intensidad": 0.6544701687992329
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 129,
+    "intensidad": 1.2633286640151165
+   }
+  ]
+ },
+ {
+  "id": "A042",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 76,
+    "intensidad": 1.0799995757107084
+   },
+   {
+    "tipo": "luto",
+    "inicio": 54,
+    "intensidad": 1.290772362436304
+   }
+  ]
+ },
+ {
+  "id": "A043",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 20,
+    "intensidad": 1.3766757792830695
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 145,
+    "intensidad": 0.6299468221657294
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 107,
+    "intensidad": 1.1991899975832778
+   }
+  ]
+ },
+ {
+  "id": "A044",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 135,
+    "intensidad": 1.1468285786442631
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 44,
+    "intensidad": 0.8303692571991519
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 25,
+    "intensidad": 0.6994814349158281
+   }
+  ]
+ },
+ {
+  "id": "A045",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 15,
+    "intensidad": 0.6266785211749308
+   }
+  ]
+ },
+ {
+  "id": "A046",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 33,
+    "intensidad": 1.3096947256495572
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 33,
+    "intensidad": 1.188686021872504
+   },
+   {
+    "tipo": "luto",
+    "inicio": 14,
+    "intensidad": 0.8304289628729845
+   }
+  ]
+ },
+ {
+  "id": "A047",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 106,
+    "intensidad": 1.1172125505468111
+   }
+  ]
+ },
+ {
+  "id": "A048",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 96,
+    "intensidad": 1.1115136751188237
+   }
+  ]
+ },
+ {
+  "id": "A049",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 83,
+    "intensidad": 1.2435537302092894
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 20,
+    "intensidad": 0.9185180100629744
+   }
+  ]
+ },
+ {
+  "id": "A050",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 84,
+    "intensidad": 1.2613720275749662
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 33,
+    "intensidad": 1.2589084639531456
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 14,
+    "intensidad": 0.898053504902999
+   }
+  ]
+ },
+ {
+  "id": "A051",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 143,
+    "intensidad": 0.6070568473414162
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 43,
+    "intensidad": 0.6537510790923072
+   }
+  ]
+ },
+ {
+  "id": "A052",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A053",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A054",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 133,
+    "intensidad": 1.331518675016372
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 46,
+    "intensidad": 0.9574150673661321
+   }
+  ]
+ },
+ {
+  "id": "A055",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 27,
+    "intensidad": 0.6405380262691424
+   }
+  ]
+ },
+ {
+  "id": "A056",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A057",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 29,
+    "intensidad": 1.0659653710198145
+   }
+  ]
+ },
+ {
+  "id": "A058",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 20,
+    "intensidad": 1.138883860991765
+   }
+  ]
+ },
+ {
+  "id": "A059",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A060",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 141,
+    "intensidad": 0.8057439276835744
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 78,
+    "intensidad": 1.295571118434418
+   }
+  ]
+ },
+ {
+  "id": "A061",
+  "entorno": "Luna",
+  "escenarios": []
+ },
+ {
+  "id": "A062",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 51,
+    "intensidad": 0.9862536358841487
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 67,
+    "intensidad": 0.6277490223018128
+   }
+  ]
+ },
+ {
+  "id": "A063",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 121,
+    "intensidad": 0.7025009648271711
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 24,
+    "intensidad": 0.627250947767853
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 59,
+    "intensidad": 1.2926783108472388
+   }
+  ]
+ },
+ {
+  "id": "A064",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A065",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 42,
+    "intensidad": 0.8587982345272069
+   }
+  ]
+ },
+ {
+  "id": "A066",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 71,
+    "intensidad": 1.1440064246937611
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 125,
+    "intensidad": 1.2967488782424257
+   }
+  ]
+ },
+ {
+  "id": "A067",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 148,
+    "intensidad": 1.0629124479386443
+   }
+  ]
+ },
+ {
+  "id": "A068",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 86,
+    "intensidad": 1.1286144478043876
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 145,
+    "intensidad": 1.3952840827534567
+   }
+  ]
+ },
+ {
+  "id": "A069",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 46,
+    "intensidad": 1.2992478942363705
+   }
+  ]
+ },
+ {
+  "id": "A070",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 12,
+    "intensidad": 0.8156883527854508
+   },
+   {
+    "tipo": "luto",
+    "inicio": 13,
+    "intensidad": 1.1881056007040436
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 138,
+    "intensidad": 1.0090663276055476
+   }
+  ]
+ },
+ {
+  "id": "A071",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 22,
+    "intensidad": 0.9032204541712918
+   }
+  ]
+ },
+ {
+  "id": "A072",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 78,
+    "intensidad": 1.2969824967126606
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 12,
+    "intensidad": 0.7010413774566923
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 145,
+    "intensidad": 1.2797403514070662
+   }
+  ]
+ },
+ {
+  "id": "A073",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A074",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A075",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 41,
+    "intensidad": 1.1967557376380857
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 124,
+    "intensidad": 1.123565739750878
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 104,
+    "intensidad": 1.2484746187532054
+   }
+  ]
+ },
+ {
+  "id": "A076",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A077",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 126,
+    "intensidad": 0.8882297930967195
+   }
+  ]
+ },
+ {
+  "id": "A078",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A079",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 50,
+    "intensidad": 1.1879633558159304
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 106,
+    "intensidad": 1.2090800551026906
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 62,
+    "intensidad": 0.9749338396457087
+   }
+  ]
+ },
+ {
+  "id": "A080",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 141,
+    "intensidad": 0.8291951583762762
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 87,
+    "intensidad": 1.148881631983138
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 65,
+    "intensidad": 0.6529954072380192
+   }
+  ]
+ },
+ {
+  "id": "A081",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 38,
+    "intensidad": 0.862615782733033
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 109,
+    "intensidad": 0.7386757111273325
+   }
+  ]
+ },
+ {
+  "id": "A082",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 118,
+    "intensidad": 1.3196173687863735
+   }
+  ]
+ },
+ {
+  "id": "A083",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 101,
+    "intensidad": 0.9595931803595845
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 44,
+    "intensidad": 1.271664295569398
+   }
+  ]
+ },
+ {
+  "id": "A084",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 19,
+    "intensidad": 0.7634455031063209
+   }
+  ]
+ },
+ {
+  "id": "A085",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 39,
+    "intensidad": 0.7765953889479806
+   }
+  ]
+ },
+ {
+  "id": "A086",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 79,
+    "intensidad": 0.9349763133081201
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 15,
+    "intensidad": 0.9970035937991368
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 141,
+    "intensidad": 0.628223070937283
+   }
+  ]
+ },
+ {
+  "id": "A087",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 83,
+    "intensidad": 0.8655812853457583
+   },
+   {
+    "tipo": "luto",
+    "inicio": 71,
+    "intensidad": 1.236680264483021
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 135,
+    "intensidad": 0.6733167130403226
+   }
+  ]
+ },
+ {
+  "id": "A088",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 40,
+    "intensidad": 0.7558922453820431
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 40,
+    "intensidad": 1.251568132029585
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 116,
+    "intensidad": 1.1565776822683866
+   }
+  ]
+ },
+ {
+  "id": "A089",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A090",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 99,
+    "intensidad": 0.8498526884651159
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 130,
+    "intensidad": 0.7401773472240657
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 59,
+    "intensidad": 1.2833850529367994
+   }
+  ]
+ },
+ {
+  "id": "A091",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A092",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 76,
+    "intensidad": 1.1390237012268685
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 29,
+    "intensidad": 0.6871367443201671
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 45,
+    "intensidad": 1.0831551722743342
+   }
+  ]
+ },
+ {
+  "id": "A093",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 83,
+    "intensidad": 1.1279320539943933
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 44,
+    "intensidad": 1.1664012520575953
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 54,
+    "intensidad": 0.9908416341985447
+   }
+  ]
+ },
+ {
+  "id": "A094",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 45,
+    "intensidad": 1.245979692236975
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 140,
+    "intensidad": 0.980805043029358
+   }
+  ]
+ },
+ {
+  "id": "A095",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 123,
+    "intensidad": 0.9307741376318918
+   },
+   {
+    "tipo": "luto",
+    "inicio": 96,
+    "intensidad": 0.9916312015608284
+   }
+  ]
+ },
+ {
+  "id": "A096",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 41,
+    "intensidad": 1.0601025837912568
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 43,
+    "intensidad": 1.1069903248904716
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 29,
+    "intensidad": 0.7721462562271886
+   }
+  ]
+ },
+ {
+  "id": "A097",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 36,
+    "intensidad": 0.7977030985695008
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 96,
+    "intensidad": 1.2016420690021246
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 21,
+    "intensidad": 0.8525449650088291
+   }
+  ]
+ },
+ {
+  "id": "A098",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 70,
+    "intensidad": 0.6807383022440145
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 15,
+    "intensidad": 0.7418059927936187
+   }
+  ]
+ },
+ {
+  "id": "A099",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 53,
+    "intensidad": 1.3588796010139668
+   }
+  ]
+ },
+ {
+  "id": "A100",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A101",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A102",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 15,
+    "intensidad": 0.904855954519035
+   },
+   {
+    "tipo": "luto",
+    "inicio": 91,
+    "intensidad": 0.6602770039646525
+   }
+  ]
+ },
+ {
+  "id": "A103",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 148,
+    "intensidad": 1.1425714825378674
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 90,
+    "intensidad": 1.0598493597806997
+   }
+  ]
+ },
+ {
+  "id": "A104",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 50,
+    "intensidad": 1.3484605883735483
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 65,
+    "intensidad": 0.698931204588384
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 47,
+    "intensidad": 1.2435472615246304
+   }
+  ]
+ },
+ {
+  "id": "A105",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 89,
+    "intensidad": 0.8824187858735005
+   }
+  ]
+ },
+ {
+  "id": "A106",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A107",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 120,
+    "intensidad": 0.8762612596411857
+   },
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 140,
+    "intensidad": 0.7978368501964103
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 86,
+    "intensidad": 1.1465385406079258
+   }
+  ]
+ },
+ {
+  "id": "A108",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 62,
+    "intensidad": 1.18566604750013
+   },
+   {
+    "tipo": "luto",
+    "inicio": 28,
+    "intensidad": 0.8918618067753821
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 81,
+    "intensidad": 1.2630161269692697
+   }
+  ]
+ },
+ {
+  "id": "A109",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 101,
+    "intensidad": 1.2508493979318867
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 64,
+    "intensidad": 0.7447413267615468
+   }
+  ]
+ },
+ {
+  "id": "A110",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 102,
+    "intensidad": 1.1773521719213849
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 77,
+    "intensidad": 1.0742397394399723
+   },
+   {
+    "tipo": "luto",
+    "inicio": 31,
+    "intensidad": 1.016888132658218
+   }
+  ]
+ },
+ {
+  "id": "A111",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 141,
+    "intensidad": 0.8955570496101948
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 118,
+    "intensidad": 0.6155191298642813
+   }
+  ]
+ },
+ {
+  "id": "A112",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 56,
+    "intensidad": 0.908207160960651
+   }
+  ]
+ },
+ {
+  "id": "A113",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A114",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 10,
+    "intensidad": 1.1041980035661947
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 102,
+    "intensidad": 1.270942677412029
+   }
+  ]
+ },
+ {
+  "id": "A115",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 123,
+    "intensidad": 0.9849624166242497
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 83,
+    "intensidad": 1.178113445580891
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 78,
+    "intensidad": 0.6974639244472262
+   }
+  ]
+ },
+ {
+  "id": "A116",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A117",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 24,
+    "intensidad": 1.1746466440813008
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 96,
+    "intensidad": 1.032241720286708
+   },
+   {
+    "tipo": "co2_alto",
+    "inicio": 122,
+    "intensidad": 0.9728214237189016
+   }
+  ]
+ },
+ {
+  "id": "A118",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A119",
+  "entorno": "Luna",
+  "escenarios": []
+ },
+ {
+  "id": "A120",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 41,
+    "intensidad": 0.7516051625820802
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 43,
+    "intensidad": 0.6000231039355853
+   }
+  ]
+ },
+ {
+  "id": "A121",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 149,
+    "intensidad": 0.698867185285265
+   }
+  ]
+ },
+ {
+  "id": "A122",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 76,
+    "intensidad": 1.3299300091461215
+   }
+  ]
+ },
+ {
+  "id": "A123",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 126,
+    "intensidad": 1.2720714154458554
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 64,
+    "intensidad": 0.9091173832222526
+   },
+   {
+    "tipo": "luto",
+    "inicio": 141,
+    "intensidad": 0.7204154828780842
+   }
+  ]
+ },
+ {
+  "id": "A124",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 135,
+    "intensidad": 1.2172747930803942
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 103,
+    "intensidad": 1.0802000303663037
+   }
+  ]
+ },
+ {
+  "id": "A125",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A126",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 21,
+    "intensidad": 1.3464099254831434
+   }
+  ]
+ },
+ {
+  "id": "A127",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 135,
+    "intensidad": 1.1533588955040748
+   }
+  ]
+ },
+ {
+  "id": "A128",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 62,
+    "intensidad": 0.649244686476653
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 21,
+    "intensidad": 1.3511018423301675
+   },
+   {
+    "tipo": "luto",
+    "inicio": 78,
+    "intensidad": 0.6029522213402045
+   }
+  ]
+ },
+ {
+  "id": "A129",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A130",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 104,
+    "intensidad": 1.3849611218063602
+   }
+  ]
+ },
+ {
+  "id": "A131",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 106,
+    "intensidad": 0.7598688007466217
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 144,
+    "intensidad": 1.1659183698467541
+   }
+  ]
+ },
+ {
+  "id": "A132",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 125,
+    "intensidad": 0.8454275262292709
+   }
+  ]
+ },
+ {
+  "id": "A133",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 83,
+    "intensidad": 0.6039853180670348
+   }
+  ]
+ },
+ {
+  "id": "A134",
+  "entorno": "Luna",
+  "escenarios": []
+ },
+ {
+  "id": "A135",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 30,
+    "intensidad": 1.185937569384492
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 76,
+    "intensidad": 0.6682784155354233
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 93,
+    "intensidad": 0.8268550432336417
+   }
+  ]
+ },
+ {
+  "id": "A136",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 124,
+    "intensidad": 0.9187255679447408
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 24,
+    "intensidad": 1.0808020105242089
+   },
+   {
+    "tipo": "luto",
+    "inicio": 129,
+    "intensidad": 1.0308495071426778
+   }
+  ]
+ },
+ {
+  "id": "A137",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 132,
+    "intensidad": 1.347574181455264
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 110,
+    "intensidad": 1.3894098240327786
+   },
+   {
+    "tipo": "luto",
+    "inicio": 81,
+    "intensidad": 0.8096793988181594
+   }
+  ]
+ },
+ {
+  "id": "A138",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 126,
+    "intensidad": 1.1743513359112496
+   }
+  ]
+ },
+ {
+  "id": "A139",
+  "entorno": "Luna",
+  "escenarios": []
+ },
+ {
+  "id": "A140",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 61,
+    "intensidad": 1.101931713389891
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 146,
+    "intensidad": 0.7033980413312131
+   }
+  ]
+ },
+ {
+  "id": "A141",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 11,
+    "intensidad": 0.8471522709704794
+   },
+   {
+    "tipo": "luto",
+    "inicio": 32,
+    "intensidad": 1.2261016981082238
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 90,
+    "intensidad": 0.8836521068793122
+   }
+  ]
+ },
+ {
+  "id": "A142",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 45,
+    "intensidad": 0.9434498795829287
+   }
+  ]
+ },
+ {
+  "id": "A143",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A144",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "friccion_social",
+    "inicio": 34,
+    "intensidad": 1.1092139215574408
+   }
+  ]
+ },
+ {
+  "id": "A145",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A146",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 59,
+    "intensidad": 0.7058438682981216
+   }
+  ]
+ },
+ {
+  "id": "A147",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 149,
+    "intensidad": 1.1081401416730652
+   }
+  ]
+ },
+ {
+  "id": "A148",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 11,
+    "intensidad": 1.0739648410620546
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 90,
+    "intensidad": 0.7849752719858722
+   },
+   {
+    "tipo": "luto",
+    "inicio": 13,
+    "intensidad": 0.9071638478955245
+   }
+  ]
+ },
+ {
+  "id": "A149",
+  "entorno": "Luna",
+  "escenarios": []
+ },
+ {
+  "id": "A150",
+  "entorno": "ISS",
+  "escenarios": []
+ },
+ {
+  "id": "A151",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A152",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 32,
+    "intensidad": 1.1064532685622317
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 80,
+    "intensidad": 1.2854841187808526
+   }
+  ]
+ },
+ {
+  "id": "A153",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "deriva_psico",
+    "inicio": 118,
+    "intensidad": 1.2037082991761432
+   }
+  ]
+ },
+ {
+  "id": "A154",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 135,
+    "intensidad": 0.9040283028032816
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 86,
+    "intensidad": 1.226286342003841
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 15,
+    "intensidad": 1.07109302687679
+   }
+  ]
+ },
+ {
+  "id": "A155",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "co2_alto",
+    "inicio": 98,
+    "intensidad": 1.2643025843089621
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 120,
+    "intensidad": 0.804959524892524
+   },
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 23,
+    "intensidad": 1.3974963298953575
+   }
+  ]
+ },
+ {
+  "id": "A156",
+  "entorno": "Marte",
+  "escenarios": []
+ },
+ {
+  "id": "A157",
+  "entorno": "Luna",
+  "escenarios": [
+   {
+    "tipo": "luto",
+    "inicio": 85,
+    "intensidad": 0.9615543198508119
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 132,
+    "intensidad": 0.6873119562669674
+   },
+   {
+    "tipo": "deriva_psico",
+    "inicio": 78,
+    "intensidad": 1.3130983221368613
+   }
+  ]
+ },
+ {
+  "id": "A158",
+  "entorno": "ISS",
+  "escenarios": [
+   {
+    "tipo": "tormenta_solar",
+    "inicio": 126,
+    "intensidad": 0.9904248601604568
+   }
+  ]
+ },
+ {
+  "id": "A159",
+  "entorno": "Marte",
+  "escenarios": [
+   {
+    "tipo": "desacondicionamiento",
+    "inicio": 17,
+    "intensidad": 1.3476079765939655
+   },
+   {
+    "tipo": "friccion_social",
+    "inicio": 51,
+    "intensidad": 1.1072490314452552
+   },
+   {
+    "tipo": "privacion_sueno",
+    "inicio": 81,
+    "intensidad": 1.0269581927727616
+   }
+  ]
+ }
+]

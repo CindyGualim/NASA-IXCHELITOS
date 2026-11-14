@@ -1,0 +1,184 @@
+{
+ "variables": [
+  "dom7_psico",
+  "dom7_sueno",
+  "dom7_fisico",
+  "dom7_social",
+  "z7_pvt_lapses",
+  "z7_estres_vas",
+  "z7_sueno_h",
+  "z7_fc_reposo",
+  "z7_hrv",
+  "z7_ejercicio_min",
+  "conflictos_tierra_7d",
+  "co2_ppm",
+  "iforest"
+ ],
+ "clases": [
+  "VERDE",
+  "AMARILLO",
+  "ROJO"
+ ],
+ "arbol": {
+  "hoja": false,
+  "variable": "dom7_fisico",
+  "umbral": 2.227,
+  "nan_va_a": "si",
+  "si": {
+   "hoja": false,
+   "variable": "dom7_psico",
+   "umbral": 0.854,
+   "nan_va_a": "si",
+   "si": {
+    "hoja": false,
+    "variable": "dom7_social",
+    "umbral": 1.255,
+    "nan_va_a": "si",
+    "si": {
+     "hoja": false,
+     "variable": "dom7_fisico",
+     "umbral": 0.892,
+     "nan_va_a": "si",
+     "si": {
+      "hoja": true,
+      "nivel": "VERDE",
+      "confianza": 0.903,
+      "n": 13825
+     },
+     "no": {
+      "hoja": true,
+      "nivel": "AMARILLO",
+      "confianza": 0.899,
+      "n": 565
+     }
+    },
+    "no": {
+     "hoja": false,
+     "variable": "dom7_social",
+     "umbral": 2.264,
+     "nan_va_a": "no",
+     "si": {
+      "hoja": true,
+      "nivel": "AMARILLO",
+      "confianza": 0.848,
+      "n": 375
+     },
+     "no": {
+      "hoja": true,
+      "nivel": "ROJO",
+      "confianza": 0.944,
+      "n": 868
+     }
+    }
+   },
+   "no": {
+    "hoja": false,
+    "variable": "dom7_psico",
+    "umbral": 2.806,
+    "nan_va_a": "si",
+    "si": {
+     "hoja": false,
+     "variable": "dom7_sueno",
+     "umbral": 2.226,
+     "nan_va_a": "si",
+     "si": {
+      "hoja": true,
+      "nivel": "AMARILLO",
+      "confianza": 0.775,
+      "n": 1723
+     },
+     "no": {
+      "hoja": true,
+      "nivel": "ROJO",
+      "confianza": 0.924,
+      "n": 189
+     }
+    },
+    "no": {
+     "hoja": false,
+     "variable": "dom7_sueno",
+     "umbral": 1.005,
+     "nan_va_a": "si",
+     "si": {
+      "hoja": true,
+      "nivel": "ROJO",
+      "confianza": 0.991,
+      "n": 905
+     },
+     "no": {
+      "hoja": true,
+      "nivel": "AMARILLO",
+      "confianza": 0.59,
+      "n": 188
+     }
+    }
+   }
+  },
+  "no": {
+   "hoja": false,
+   "variable": "dom7_fisico",
+   "umbral": 2.539,
+   "nan_va_a": "no",
+   "si": {
+    "hoja": false,
+    "variable": "dom7_social",
+    "umbral": 0.326,
+    "nan_va_a": "no",
+    "si": {
+     "hoja": true,
+     "nivel": "AMARILLO",
+     "confianza": 0.664,
+     "n": 53
+    },
+    "no": {
+     "hoja": false,
+     "variable": "iforest",
+     "umbral": 0.586,
+     "nan_va_a": "si",
+     "si": {
+      "hoja": true,
+      "nivel": "ROJO",
+      "confianza": 1.0,
+      "n": 84
+     },
+     "no": {
+      "hoja": true,
+      "nivel": "ROJO",
+      "confianza": 0.803,
+      "n": 46
+     }
+    }
+   },
+   "no": {
+    "hoja": false,
+    "variable": "z7_hrv",
+    "umbral": 2.161,
+    "nan_va_a": "no",
+    "si": {
+     "hoja": true,
+     "nivel": "ROJO",
+     "confianza": 0.881,
+     "n": 40
+    },
+    "no": {
+     "hoja": false,
+     "variable": "z7_ejercicio_min",
+     "umbral": 2.207,
+     "nan_va_a": "no",
+     "si": {
+      "hoja": true,
+      "nivel": "ROJO",
+      "confianza": 1.0,
+      "n": 40
+     },
+     "no": {
+      "hoja": true,
+      "nivel": "ROJO",
+      "confianza": 1.0,
+      "n": 1259
+     }
+    }
+   }
+  }
+ }
+}
