@@ -133,6 +133,39 @@ GET  /astronautas/{id}/estado
 ```
 Respuesta: `nivel` (VERDE/AMARILLO/ROJO), `dominios`, `z`, `alertas`, `recomendaciones`,
 `eventos_activos`, `factores_contexto`, `ml` (score en modo sombra). El estado vive en memoria.
+En `eventos_activos`, el campo `dia` son los días transcurridos desde el evento (0 = el mismo día).
+
+### Frontend ARMOR conectado (`fronted/`)
+El panel React/Vite pide cada día al motor. Para verlo con datos reales del motor:
+```bash
+cd ixchel && uvicorn api:app --port 8000      # terminal 1 (precarga las 3 misiones en ~1 min)
+cd fronted && pnpm install && pnpm dev        # terminal 2 -> http://localhost:8443
+```
+Vite reenvía `/api/*` a `http://127.0.0.1:8000` (cambiar con la variable `IXCHEL_API`). La API
+también permite CORS desde `localhost`. Si la API no está corriendo, la web muestra
+"Engine offline · sample data" y usa sus valores de ejemplo.
+
+Endpoints de demostración (misiones simuladas que el motor real procesa día por día):
+```
+GET /demo/escenarios          nominal (sano), fatiga (privación de sueño d76), duelo (luto d140)
+GET /demo/{escenario}/dia/{t} salida del motor del día t + fila de entrada, promedio de la línea
+                              base, promedio de 7 días y tendencia de 7 días por dominio
+```
+Escenarios de la web → motor: Nominal → `nominal`, Cumulative fatigue → `fatiga`,
+Grief support → `duelo` (salta al 4.º día tras la pérdida). Emergency sigue siendo solo de la interfaz.
+
+**Modelo 3D de "My body":** `fronted/public/models/human.glb` (92 KB) sale de `BASEmodel.blend` con
+`python -I scripts/modelo3d/blend_a_glb.py BASEmodel.blend fronted/public/models/human.glb`. El script lee el
+`.blend` sin Blender, aplica su modificador Mirror y separa el cuerpo en zonas (head, neck, torso, arms,
+legs) que la web colorea según el estado del motor. three.js se carga solo al abrir "My body".
+
+Qué viene del motor: contexto de cabina (CO₂, ruido, gravedad, radiación diaria y acumulada,
+retardo con la Tierra), semáforo general, los 4 dominios con su tendencia de 7 días, las tarjetas
+de decisión (una por dominio con alertas de reglas), el aviso temprano del modelo, el detalle
+"Why I am telling you this" (semana vs. su normal y el camino del árbol), las contramedidas
+(primero la que eligió el motor), el día del protocolo de duelo y el mapa del cuerpo (cabeza,
+torso, piernas). Siguen siendo de ejemplo: Daily check, Emergency, pasos del protocolo de duelo,
+ojos y cuello del mapa del cuerpo, y las secciones Timeline, Environment, Care y Decision log.
 
 ## Autorreporte: lo que el astronauta cuenta (nuevo)
 

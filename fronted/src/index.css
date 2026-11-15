@@ -140,6 +140,10 @@
 .decision-card { min-height: 190px; display: grid; grid-template-columns: 60px minmax(360px, 1fr) auto; gap: 15px; align-items: center; padding: 22px 24px; margin-bottom: 12px; background: var(--warm); border: 1px solid var(--blue); }
 .decision-card.attention { border-left: 8px solid var(--alert); cursor: pointer; }.decision-card.attention:hover { border-top-color: var(--alert); border-right-color: var(--alert); border-bottom-color: var(--alert); }
 .decision-card.model { border: 2px dashed var(--teal); }
+.decision-card.critical { border-left: 8px solid var(--red); cursor: pointer; }.decision-card.critical:hover { border-top-color: var(--red); border-right-color: var(--red); border-bottom-color: var(--red); }
+.domain-card.critical { border-top-color: var(--red); }.critical .domain-status span { border-color: var(--red); }
+.link-state.offline i { background: var(--alert); }
+.global-state.normal { border-color: var(--blue); }.global-state.critical { border-color: var(--red); }
 .decision-icon { align-self: start; padding-top: 4px; }.decision-type, .model-label { color: var(--teal); font-size: 8px; font-weight: 800; letter-spacing: .12em; }
 .model-label { display: flex; align-items: center; gap: 7px; }
 .decision-content h3 { color: var(--blue); font-size: 23px; margin: 6px 0 8px; }.decision-content > p { max-width: 720px; color: var(--teal); font-size: 12px; line-height: 1.55; }
@@ -360,6 +364,14 @@ body, .armor-shell { background: var(--page-gradient); }
 .body-layout { display: grid; grid-template-columns: 1.25fr .75fr; min-height: 620px; gap: 18px; margin-top: 22px; }
 .body-map { position: relative; min-height: 620px; display: grid; place-items: center; overflow: hidden; background: #e5d7c4; border: 1px solid var(--moss); }.body-map::before { content: ''; position: absolute; inset: 24px; border: 1px dashed #889063; }.body-map > svg { height: 550px; fill: none; stroke: #4c3d19; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .body-map-point { position: absolute; min-width: 95px; min-height: 42px; display: flex; align-items: center; gap: 7px; padding: 5px 9px; background: #e5d7c4; color: #4c3d19; border: 2px solid #4c3d19; font-size: 9px; font-weight: 800; }.body-map-point.active { outline: 4px solid #889063; outline-offset: 2px; }.body-map-point.head { top: 11%; left: calc(50% + 55px); }.body-map-point.eyes { top: 18%; right: 12%; }.body-map-point.neck { top: 25%; left: 12%; }.body-map-point.torso { top: 45%; right: 9%; }.body-map-point.legs { bottom: 16%; left: 10%; }
+.body-map-3d { display: block; }
+.body3d { position: absolute; inset: 24px 24px 76px; }
+.body3d canvas { display: block; touch-action: none; }
+.body3d-note { position: absolute; inset: 0; display: grid; place-items: center; color: #4c3d19; font-size: 11px; font-weight: 700; }
+.body3d-hint { position: absolute; top: 34px; left: 36px; color: #4c3d19; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .75; pointer-events: none; }
+.body-zone-list { position: absolute; left: 24px; right: 24px; bottom: 18px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.body-zone-list .body-map-point { position: static; min-width: 0; min-height: 34px; }
+.body-panel.attention, .body-panel.critical, .body-panel.model { border-top-width: 8px; }.body-panel.critical { border-top: 8px solid var(--red); }.body-panel.model { border-top: 8px dashed var(--teal); }
 .body-panel { align-self: stretch; padding: 28px; border: 1px solid var(--moss); background: var(--surface-gradient); }.body-panel.attention { border-top: 8px solid var(--alert); }.body-panel.empty { border-top: 8px dashed var(--moss); }.body-panel.normal { border-top: 8px solid var(--teal); }.body-panel-state { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }.body-panel-state > span { color: var(--blue); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }.body-panel h2 { color: var(--blue); font-size: 36px; margin: 5px 0 20px; }
 .body-metrics { border-top: 1px solid var(--moss); }.body-metrics > div { padding: 16px 0; border-bottom: 1px solid var(--moss); }.body-metrics small, .body-metrics strong { display: block; }.body-metrics small { color: var(--cafe); font-size: 9px; }.body-metrics strong { color: var(--blue); font: 600 16px 'Space Grotesk'; margin-top: 3px; }.sensor-needed { display: flex; gap: 12px; margin-top: 20px; padding: 15px; background: var(--tan); border-left: 5px solid var(--moss); }.sensor-needed svg { width: 22px; color: var(--teal); flex: none; }.sensor-needed strong { color: var(--blue); font-size: 10px; }.sensor-needed p { color: var(--blue); font-size: 9px; margin-top: 3px; }.body-panel-note { color: var(--cafe); font-size: 9px; line-height: 1.5; margin-top: 22px; }
 

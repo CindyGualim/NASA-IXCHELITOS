@@ -62,6 +62,32 @@ def test_sueno_y_dia_con_noche(client, astronauta):
     assert "sueno_estimado" in r.json()
 
 
+def test_demo_para_frontend(client):
+    esc = client.get("/demo/escenarios").json()
+    assert {e["clave"] for e in esc} == {"nominal", "fatiga", "duelo"}
+    r = client.get("/demo/fatiga/dia/87")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["dia"] == 87 and d["salida"]["nivel"] in ("VERDE", "AMARILLO", "ROJO")
+    assert set(d["tendencia"]) == {"psico", "sueno", "fisico", "social"}
+    assert 1 <= len(d["tendencia"]["sueno"]) <= 7
+    assert d["base"]["sueno_h"] > 0 and d["semana"]["sueno_h"] > 0
+    assert "riesgo_dominios" in d["salida"]["ml"]
+    # el monitor de la demo queda registrado como un astronauta más
+    assert client.get(f"/astronautas/{d['escenario']['astronauta']}/estado").status_code == 200
+    duelo = client.get("/demo/duelo/dia/143").json()
+    assert any(e["tipo"] == "luto" for e in duelo["salida"]["eventos_activos"])
+    assert client.get("/demo/fatiga/dia/999").status_code == 422
+    assert client.get("/demo/inventado/dia/1").status_code == 404
+
+
+def test_cors_localhost(client):
+    r = client.get("/demo/escenarios", headers={"Origin": "http://localhost:8443"})
+    assert r.headers.get("access-control-allow-origin") == "http://localhost:8443"
+    r = client.get("/demo/escenarios", headers={"Origin": "https://ejemplo.com"})
+    assert "access-control-allow-origin" not in r.headers
+
+
 def test_modelos(client):
     m = client.get("/modelos/metricas").json()
     assert {"metricas_riesgo", "metricas_sueno"} <= set(m)

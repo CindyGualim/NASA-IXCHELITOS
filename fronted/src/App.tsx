@@ -1,11 +1,19 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, lazy, Suspense, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from './components/Icon'
+import type { Zone } from './Body3D'
+
+// three.js only loads when "My body" opens, so the Today screen stays light
+const Body3D = lazy(() => import('./Body3D').then(m => ({ default: m.Body3D })))
+import { buildToday, careFor, reasonsFor, useIxchelDay, useScenarios, type DayPayload, type DecisionVM, type DomainVM, type LinkStatus, type ModelNoticeVM, type StatusKind, type TodayVM } from './ixchel'
+
+// Live connection to the Ixchel engine, shared with the simulation bar.
+const EngineCtx = createContext<{ status: LinkStatus; today: TodayVM | null }>({ status: 'idle', today: null })
 
 type Scenario = 'Nominal' | 'Cumulative fatigue' | 'Grief support' | 'Emergency'
 type Decision = 'applied' | 'postponed' | 'discarded' | null
 type StepState = 'done' | 'postponed' | 'not-applicable' | null
 type View = 'Today' | 'Daily check' | 'My body' | 'How to read this'
-type BodyRegion = 'head' | 'eyes' | 'neck' | 'torso' | 'legs'
+type BodyRegion = 'head' | 'eyes' | 'neck' | 'torso' | 'arms' | 'legs'
 
 const navigation = [
   { label: 'Today', icon: 'home' as const, active: true },
@@ -26,7 +34,28 @@ const contextItems = [
   { label: 'Communication', value: '12 min', meta: 'Earth delay', icon: 'signal' },
 ] as const
 
-type StatusKind = 'normal' | 'attention' | 'critical' | 'empty' | 'model' | 'protocol'
+// Sample values shown when the engine API is not running.
+const sampleDomains: DomainVM[] = [
+  { key: 'sueno', title: 'Sleep', kind: 'attention', status: 'Attention', description: '5.4 h average this week; your personal norm is 7.1 h.', trend: 'down', values: [] },
+  { key: 'psico', title: 'Mood', kind: 'attention', status: 'Attention', description: 'Fewer messages and more tension than your personal average.', trend: 'down', values: [] },
+  { key: 'fisico', title: 'Body', kind: 'normal', status: 'Normal', description: 'Exercise and vital signs are within your personal range.', trend: 'stable', values: [] },
+  { key: 'social', title: 'Connection', kind: 'empty', status: 'No data yet', description: '11 days remain before your personal baseline is ready.', trend: 'empty', values: [] },
+]
+const sampleDecisions: DecisionVM[] = [
+  { id: 'sample', domain: 'sueno', kind: 'attention', typeLabel: 'MONITORING RULE · SLEEP', title: 'Cumulative fatigue', text: 'You have slept less than 6 hours for 3 days and shown more attention errors. Cabin noise and high CO₂ may be contributing.', careKey: 'siesta_ancla' },
+]
+const sampleNotice: ModelNoticeVM = { domain: 'sueno', title: 'Early sleep signal', text: 'The model detects a decline in your rest before the rules confirm it. This is not an alert; it is a notice to monitor. The model cannot declare a critical state.', steps: [] }
+const sampleReasons = [
+  ['Your sleep this week:', '5.4 h average.', 'Your norm:', '7.1 h.'],
+  ['Your attention errors:', '4.2 per day.', 'Your norm:', '1.5.'],
+  ['Cabin CO₂:', '3,180 ppm,', 'above the notice threshold of', '3,000.'],
+]
+const sampleCare = [
+  { key: 'siesta_ancla', title: 'Anchor nap', duration: '90 min', tag: 'Worked for you 3 of 4 times', copy: 'Creates a protected recovery window before your next duty period.' },
+  { key: 'luz_460nm', title: '460 nm blue light', duration: '30 min · morning', tag: '', copy: 'Supports your planned morning light exposure and circadian timing.' },
+  { key: 'reorganizar_turnos', title: 'Reorganize shifts', duration: 'Next 24 h', tag: '', copy: 'Moves high-attention tasks away from your lowest-rest period.' },
+]
+const DOMAIN_UPPER: Record<string, string> = { sueno: 'SLEEP', psico: 'MOOD', fisico: 'BODY', social: 'CONNECTION', ambiente: 'CABIN' }
 
 function StatusMark({ kind, size = 'md' }: { kind: StatusKind; size?: 'sm' | 'md' | 'lg' }) {
   const labels: Record<StatusKind, string> = {
@@ -58,19 +87,23 @@ function ContextIcon({ name }: { name: string }) {
   return <><path d="M5 16a10 10 0 0 1 14 0M8 13a6 6 0 0 1 8 0M11 10a2 2 0 0 1 2 0" /><circle cx="12" cy="19" r="1" /></>
 }
 
-function Trend({ direction, empty = false }: { direction: 'down' | 'stable'; empty?: boolean }) {
+function Trend({ direction, empty = false, values = [] }: { direction: 'down' | 'stable'; empty?: boolean; values?: number[] }) {
   if (empty) return <div className="baseline-progress"><span style={{ width: '63%' }} /></div>
-  const points = direction === 'down' ? '2,8 20,11 38,12 56,20 74,24 92,35 110,39' : '2,23 20,21 38,24 56,20 74,22 92,20 110,22'
+  // values = engine domain score for the last days (higher = worse), drawn so that worse goes down
+  const top = Math.max(4, ...values)
+  const real = values.length > 1 ? values.map((v, i) => [2 + (108 * i) / (values.length - 1), 4 + (36 * Math.max(0, v)) / top] as const) : null
+  const points = real ? real.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ') : direction === 'down' ? '2,8 20,11 38,12 56,20 74,24 92,35 110,39' : '2,23 20,21 38,24 56,20 74,22 92,20 110,22'
+  const endY = real ? real[real.length - 1][1].toFixed(1) : direction === 'down' ? '39' : '22'
   return (
     <svg className={`trend-line ${direction}`} viewBox="0 0 112 44" role="img" aria-label={direction === 'down' ? 'Downward trend over seven days' : 'Stable trend over seven days'}>
       <path d="M2 42H110" />
       <polyline points={points} />
-      <circle cx="110" cy={direction === 'down' ? '39' : '22'} r="3" />
+      <circle cx="110" cy={endY} r="3" />
     </svg>
   )
 }
 
-function DomainCard({ title, kind, status, description, trend }: { title: string; kind: StatusKind; status: string; description: string; trend: 'down' | 'stable' | 'empty' }) {
+function DomainCard({ title, kind, status, description, trend, values }: { title: string; kind: StatusKind; status: string; description: string; trend: 'down' | 'stable' | 'empty'; values?: number[] }) {
   return (
     <article className={`domain-card ${kind}`}>
       <div className="domain-card-head">
@@ -81,17 +114,48 @@ function DomainCard({ title, kind, status, description, trend }: { title: string
       <p className="domain-description">{description}</p>
       <div className="domain-trend">
         <div><small>{trend === 'empty' ? 'Personal baseline' : 'Last 7 days'}</small><strong>{trend === 'down' ? 'Declining' : trend === 'stable' ? 'Stable' : 'Day 19 of 30'}</strong></div>
-        <Trend direction={trend === 'stable' ? 'stable' : 'down'} empty={trend === 'empty'} />
+        <Trend direction={trend === 'stable' ? 'stable' : 'down'} empty={trend === 'empty'} values={values} />
       </div>
     </article>
   )
 }
 
 function App() {
-  const [scenario, setScenario] = useState<Scenario>('Cumulative fatigue')
+  const [scenario, setScenarioRaw] = useState<Scenario>('Cumulative fatigue')
   const [missionDay, setMissionDay] = useState(87)
-  const [decision, setDecision] = useState<Decision>(null)
-  const [detailOpen, setDetailOpen] = useState(false)
+  const { data, status } = useIxchelDay(scenario, missionDay)
+  const scenarios = useScenarios()
+  const today = data ? buildToday(data, missionDay) : null
+  const setScenario = (value: Scenario) => {
+    setScenarioRaw(value)
+    // Grief support: jump to the fourth day after the simulated loss, when the support protocol is active
+    const loss = value === 'Grief support' ? scenarios.find(s => s.clave === 'duelo')?.eventos.find(e => e.tipo === 'luto') : undefined
+    if (loss) setMissionDay(Math.min(180, loss.inicio + 4))
+  }
+  return (
+    <EngineCtx.Provider value={{ status, today }}>
+      <Screens scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} data={data} today={today} />
+    </EngineCtx.Provider>
+  )
+}
+
+function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today }: {
+  scenario: Scenario
+  setScenario: (value: Scenario) => void
+  missionDay: number
+  setMissionDay: (value: number) => void
+  data: DayPayload | null
+  today: TodayVM | null
+}) {
+  const decisionCards = today ? today.decisions : sampleDecisions
+  const modelNotice = today ? today.modelNotice : sampleNotice
+  const domainCards = today ? today.domains : sampleDomains
+  const [decisions, setDecisions] = useState<Record<string, Decision>>({})
+  const decisionOf = (id: string) => decisions[id] ?? null
+  const setDecisionFor = (id: string, value: Decision) => setDecisions(current => ({ ...current, [id]: value }))
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const detailOpen = detailId !== null
+  const setDetailOpen = (open: boolean) => setDetailId(open ? (decisionCards[0]?.id ?? null) : null)
   const [notice, setNotice] = useState('')
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('armor-theme') === 'dark')
   const [selectedCare, setSelectedCare] = useState('Anchor nap')
@@ -103,6 +167,19 @@ function App() {
   const [postEmergency, setPostEmergency] = useState(false)
   const [dailyAnswers, setDailyAnswers] = useState({ feeling: '', support: '' })
   const [bodyRegion, setBodyRegion] = useState<BodyRegion>('torso')
+
+  // Decision detail: a rule card ("sueno:FATIGA_CRONICA") or the model notice ("model:sueno")
+  const detailIsModel = detailId?.startsWith('model:') ?? false
+  const detailCard = detailIsModel ? null : decisionCards.find(card => card.id === detailId) ?? null
+  const detailDomain = detailIsModel ? detailId!.slice(6) : detailCard?.domain ?? 'sueno'
+  const detailReasons = data ? reasonsFor(detailDomain, data).map(r => r.parts) : sampleReasons
+  const detailCare = data ? careFor(detailDomain, data) : sampleCare
+  const detailKey = detailId ?? 'sample'
+  const openDetail = (id: string, domain: string) => {
+    setDetailId(id)
+    const options = data ? careFor(domain, data) : sampleCare
+    if (options[0]) setSelectedCare(options[0].title)
+  }
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light'
@@ -150,7 +227,7 @@ function App() {
           <div className="protocol-accent" />
           <section className="protocol-header">
             <div className="protocol-heart"><Icon name="heart" /></div>
-            <div><p className="screen-kicker">SUPPORT PROTOCOL</p><h1>Active support · day 4 of 30</h1><p>{protocolPaused ? 'Support is paused. Your progress and choices remain saved.' : 'This space keeps the focus on care, not measurement.'}</p></div>
+            <div><p className="screen-kicker">SUPPORT PROTOCOL</p><h1>{!today ? 'Active support · day 4 of 30' : today.griefDay ? `Active support · day ${today.griefDay} of 30` : `Active support · starts on mission day ${(data?.escenario.eventos.find(e => e.tipo === 'luto')?.inicio ?? 0) + 1}`}</h1><p>{protocolPaused ? 'Support is paused. Your progress and choices remain saved.' : 'This space keeps the focus on care, not measurement.'}</p></div>
             <button className="secondary-action" onClick={() => setProtocolPaused(value => !value)}>{protocolPaused ? 'Resume' : 'Pause'}</button>
           </section>
           <section className="protocol-message">
@@ -176,7 +253,7 @@ function App() {
               <span className="family-icon"><Icon name="users" /></span>
               <p className="screen-kicker">PERSONAL CONNECTION</p>
               <h2>Message your family</h2>
-              <p>Your message will arrive in 12 minutes. This delay is part of the space you share, not a barrier to it.</p>
+              <p>Your message will arrive in {today ? (today.delayMin < 1 ? 'less than a minute' : `${Math.round(today.delayMin)} minutes`) : '12 minutes'}. This delay is part of the space you share, not a barrier to it.</p>
               <button className="primary-action" onClick={() => setNotice('Private message space opened.')}>Write</button>
             </aside>
           </section>
@@ -197,40 +274,41 @@ function App() {
         <main className="armor-main detail-main" id="main">
           <div className="window-titlebar">
             <div className="window-app"><span><Icon name="alert" /></span><div><strong>Decision Detail</strong><small>ARMOR / EXPLAIN.DECIDE</small></div></div>
-            <div className="window-center">SLEEP · RULE-BASED ATTENTION</div>
+            <div className="window-center">{DOMAIN_UPPER[detailDomain] ?? 'SLEEP'} · {detailIsModel ? 'EARLY MODEL NOTICE' : detailCard?.kind === 'critical' ? 'RULE-BASED CRITICAL' : 'RULE-BASED ATTENTION'}</div>
             <div className="window-controls" aria-label="Window controls"><button aria-label="Minimize">—</button><button aria-label="Fit window">□</button><button aria-label="Active window">●</button></div>
           </div>
           <div className="detail-content">
             <button className="back-button" onClick={() => setDetailOpen(false)}><Icon name="chevron" /> Back to Today</button>
             <header className="detail-header">
-              <div><p className="screen-kicker">EXPLAINED DECISION</p><h1>Cumulative fatigue</h1><p>ARMOR is showing the conditions behind this state. You remain in control of the decision.</p></div>
-              <div className="attention-label"><StatusMark kind="attention" size="lg" /><span>Attention</span></div>
+              <div><p className="screen-kicker">EXPLAINED DECISION</p><h1>{detailIsModel ? modelNotice?.title ?? 'Early model notice' : detailCard?.title ?? 'Cumulative fatigue'}</h1><p>ARMOR is showing the conditions behind this state. You remain in control of the decision.</p></div>
+              <div className="attention-label"><StatusMark kind={detailIsModel ? 'model' : detailCard?.kind ?? 'attention'} size="lg" /><span>{detailIsModel ? 'Early notice' : detailCard?.kind === 'critical' ? 'Critical' : 'Attention'}</span></div>
             </header>
 
             <section className="why-section" aria-labelledby="why-title">
               <p className="screen-kicker">TRACEABLE REASONING</p>
               <h2 id="why-title">Why I am telling you this</h2>
               <div className="reason-chain">
-                <div><span>1</span><p>Your sleep this week: <strong>5.4 h average.</strong> Your norm: <strong>7.1 h.</strong></p></div>
-                <div><span>2</span><p>Your attention errors: <strong>4.2 per day.</strong> Your norm: <strong>1.5.</strong></p></div>
-                <div><span>3</span><p>Cabin CO₂: <strong>3,180 ppm</strong>, above the notice threshold of 3,000.</p></div>
+                {detailReasons.map(([label, value, normLabel, norm], index) => (
+                  <div key={label}><span>{index + 1}</span><p>{label} <strong>{value}</strong> {normLabel} <strong>{norm}</strong></p></div>
+                ))}
+                {detailIsModel && modelNotice?.steps.map((step, index) => (
+                  <div key={step}><span>{detailReasons.length + index + 1}</span><p>Model decision path: <strong>{step}</strong></p></div>
+                ))}
               </div>
-              <div className="reason-result"><Icon name="alert" /><span>Therefore:</span><strong>Attention on sleep</strong></div>
+              <div className="reason-result"><Icon name="alert" /><span>Therefore:</span><strong>{detailIsModel ? 'Early notice on' : detailCard?.kind === 'critical' ? 'Critical review of' : 'Attention on'} {(DOMAIN_UPPER[detailDomain] ?? 'SLEEP').toLowerCase()}</strong></div>
             </section>
 
             <section className="no-action-card">
               <div className="no-action-icon"><Icon name="clock" /></div>
-              <div><p className="screen-kicker">IF YOU DO NOTHING</p><h2>Fatigue may continue to accumulate</h2><p>Based on your recent pattern, shorter sleep may lead to more attention errors over the next day. This is a trajectory, not a diagnosis, and you can review the decision at any time.</p></div>
+              {detailDomain === 'sueno'
+                ? <div><p className="screen-kicker">IF YOU DO NOTHING</p><h2>Fatigue may continue to accumulate</h2><p>Based on your recent pattern, shorter sleep may lead to more attention errors over the next day. This is a trajectory, not a diagnosis, and you can review the decision at any time.</p></div>
+                : <div><p className="screen-kicker">IF YOU DO NOTHING</p><h2>This pattern may continue</h2><p>Based on your recent pattern, these measures may keep moving away from your personal norm. This is a trajectory, not a diagnosis, and you can review the decision at any time.</p></div>}
             </section>
 
-            <section className="care-section" aria-labelledby="care-title">
+            {detailCare.length > 0 && <section className="care-section" aria-labelledby="care-title">
               <div className="section-title-row"><div><p className="screen-kicker">PERSONAL COUNTERMEASURES</p><h2 id="care-title">What you can do</h2></div><span className="updated-label">Select one option</span></div>
               <div className="care-options">
-                {[
-                  { title: 'Anchor nap', duration: '90 min', tag: 'Worked for you 3 of 4 times', copy: 'Creates a protected recovery window before your next duty period.' },
-                  { title: '460 nm blue light', duration: '30 min · morning', tag: '', copy: 'Supports your planned morning light exposure and circadian timing.' },
-                  { title: 'Reorganize shifts', duration: 'Next 24 h', tag: '', copy: 'Moves high-attention tasks away from your lowest-rest period.' },
-                ].map(option => (
+                {detailCare.map(option => (
                   <button key={option.title} className={selectedCare === option.title ? 'care-option selected' : 'care-option'} onClick={() => setSelectedCare(option.title)}>
                     <span className="care-select"><Icon name="check" /></span>
                     {option.tag && <small>{option.tag}</small>}
@@ -240,20 +318,20 @@ function App() {
                   </button>
                 ))}
               </div>
-            </section>
+            </section>}
 
             {dismissOpen && (
               <section className="dismiss-panel">
                 <div><p className="screen-kicker">REASON REQUIRED</p><h2>Why are you dismissing this recommendation?</h2><p>Your reason becomes part of the decision log and helps preserve clinical context.</p></div>
                 <label>Reason<textarea value={dismissReason} onChange={event => setDismissReason(event.target.value)} rows={3} placeholder="Enter a brief reason…" required /></label>
-                <div><button className="tertiary-action" onClick={() => setDismissOpen(false)}>Cancel</button><button className="primary-action" disabled={!dismissReason.trim()} onClick={() => { setDecision('discarded'); setDismissOpen(false); setNotice('Recommendation dismissed and reason recorded.') }}>Record dismissal</button></div>
+                <div><button className="tertiary-action" onClick={() => setDismissOpen(false)}>Cancel</button><button className="primary-action" disabled={!dismissReason.trim()} onClick={() => { setDecisionFor(detailKey, 'discarded'); setDismissOpen(false); setNotice('Recommendation dismissed and reason recorded.') }}>Record dismissal</button></div>
               </section>
             )}
           </div>
           <div className="detail-decision-bar">
             <div><small>SELECTED COUNTERMEASURE</small><strong>{selectedCare}</strong></div>
-            <button className="primary-action" onClick={() => { setDecision('applied'); setNotice(`${selectedCare} applied.`) }}>Apply</button>
-            <button className="secondary-action" onClick={() => { setDecision('postponed'); setNotice('Decision postponed until tomorrow.') }}>Postpone until tomorrow</button>
+            <button className="primary-action" onClick={() => { setDecisionFor(detailKey, 'applied'); setNotice(`${selectedCare} applied.`) }}>Apply</button>
+            <button className="secondary-action" onClick={() => { setDecisionFor(detailKey, 'postponed'); setNotice('Decision postponed until tomorrow.') }}>Postpone until tomorrow</button>
             <button className="tertiary-action" onClick={() => setDismissOpen(true)}>Dismiss</button>
           </div>
         </main>
@@ -275,7 +353,7 @@ function App() {
   if (view === 'My body') {
     return (
       <StandardShell darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} activeItem="My body" onNavigate={navigate} title="My Body" code="DIGITAL.TWIN" center="INTERACTIVE BODY MAP · CREW MEMBER 04">
-        <BodyView region={bodyRegion} setRegion={setBodyRegion} />
+        <BodyView region={bodyRegion} setRegion={setBodyRegion} domains={today?.domains} missionDay={missionDay} />
       </StandardShell>
     )
   }
@@ -305,7 +383,7 @@ function App() {
         <section className="context-band" aria-labelledby="context-title">
           <div className="context-band-title"><span>CONTEXT</span><strong id="context-title">Conditions that may influence you today</strong></div>
           <div className="context-grid">
-            {contextItems.map(item => (
+            {(today ? today.context : contextItems).map(item => (
               <div className="context-item" key={item.label}>
                 <div className="context-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><ContextIcon name={item.icon} /></svg></div>
                 <div><small>{item.label}</small><strong>{item.value}</strong><span className={'attention' in item && item.attention ? 'context-meta attention' : 'context-meta'}>{'attention' in item && item.attention && <StatusMark kind="attention" size="sm" />}{item.meta}</span>{'progress' in item && <div className="context-progress"><i style={{ width: `${item.progress}%` }} /></div>}</div>
@@ -315,49 +393,54 @@ function App() {
         </section>
 
         <header className="today-header">
-          <div><p className="screen-kicker">DAILY STATUS · {missionDay.toString().padStart(3, '0')}</p><h1>Today, sleep and mood<br />need your attention</h1><p>Compared with your personal norm, measured during the 30 days before the mission.</p></div>
-          <div className="global-state"><StatusMark kind="attention" size="lg" /><div><small>OVERALL STATUS</small><strong>Attention</strong><span>2 of 4 domains require a decision</span></div></div>
+          <div><p className="screen-kicker">DAILY STATUS · {missionDay.toString().padStart(3, '0')}</p><h1>{today ? today.headline[0] : 'Today, sleep and mood'}<br />{today ? today.headline[1] : 'need your attention'}</h1><p>Compared with your personal norm, measured during the {today ? 40 : 30} days before the mission.</p></div>
+          <div className={`global-state ${today ? today.overallKind : 'attention'}`}><StatusMark kind={today ? today.overallKind : 'attention'} size="lg" /><div><small>OVERALL STATUS</small><strong>{today ? today.overallLabel : 'Attention'}</strong><span>{today ? today.overallNote : '2 of 4 domains require a decision'}</span></div></div>
         </header>
 
         <section aria-labelledby="domains-title">
-          <div className="section-title-row"><div><p className="screen-kicker">YOUR TRAJECTORY</p><h2 id="domains-title">What changed since yesterday</h2></div><span className="updated-label"><Icon name="clock" /> Updated 06:40</span></div>
+          <div className="section-title-row"><div><p className="screen-kicker">YOUR TRAJECTORY</p><h2 id="domains-title">What changed since yesterday</h2></div><span className="updated-label"><Icon name="clock" /> {today ? `Ixchel engine · day ${missionDay}` : 'Updated 06:40'}</span></div>
           <div className="domain-grid">
-            <DomainCard title="Sleep" kind="attention" status="Attention" description="5.4 h average this week; your personal norm is 7.1 h." trend="down" />
-            <DomainCard title="Mood" kind="attention" status="Attention" description="Fewer messages and more tension than your personal average." trend="down" />
-            <DomainCard title="Body" kind="normal" status="Normal" description="Exercise and vital signs are within your personal range." trend="stable" />
-            <DomainCard title="Connection" kind="empty" status="No data yet" description="11 days remain before your personal baseline is ready." trend="empty" />
+            {domainCards.map(card => <DomainCard key={card.key} title={card.title} kind={card.kind} status={card.status} description={card.description} trend={card.trend} values={card.values} />)}
           </div>
         </section>
 
         <section className="actions-section" aria-labelledby="actions-title">
-          <div className="section-title-row"><div><p className="screen-kicker">ONE DECISION AT A TIME</p><h2 id="actions-title">What you can do today</h2></div><span className="action-count">2 pending actions</span></div>
+          <div className="section-title-row"><div><p className="screen-kicker">ONE DECISION AT A TIME</p><h2 id="actions-title">What you can do today</h2></div><span className="action-count">{decisionCards.length + (modelNotice ? 1 : 0)} pending action{decisionCards.length + (modelNotice ? 1 : 0) === 1 ? '' : 's'}</span></div>
 
-          <article className="decision-card attention" onClick={() => setDetailOpen(true)}>
-            <div className="decision-icon"><StatusMark kind="attention" size="lg" /></div>
-            <div className="decision-content">
-              <span className="decision-type">MONITORING RULE · SLEEP</span>
-              <h3>Cumulative fatigue</h3>
-              <p>You have slept less than 6 hours for 3 days and shown more attention errors. Cabin noise and high CO₂ may be contributing.</p>
-              <button className="why-link" onClick={event => { event.stopPropagation(); setDetailOpen(true) }}>See why <Icon name="chevron" /></button>
-            </div>
-            <div className="decision-actions" onClick={event => event.stopPropagation()}>
-              {decision ? <div className="decision-recorded"><Icon name="check" /><div><strong>Decision recorded</strong><span>{decision === 'applied' ? 'Anchor nap applied' : decision === 'postponed' ? 'Postponed for later review' : 'Dismissed; reason pending'}</span></div><button onClick={() => setDecision(null)}>Change</button></div> :
-              <><button className="primary-action" onClick={() => setDecision('applied')}>Apply anchor nap</button><button className="secondary-action" onClick={() => setDecision('postponed')}>Postpone</button><button className="tertiary-action" onClick={() => setDecision('discarded')}>Dismiss</button></>}
-            </div>
-          </article>
+          {decisionCards.length === 0 && !modelNotice && <p className="domain-description">Nothing to decide today. Ixchel keeps comparing you with your personal norm.</p>}
 
-          <article className="decision-card model">
+          {decisionCards.map(card => {
+            const decision = decisionOf(card.id)
+            const care = data ? careFor(card.domain, data)[0] : sampleCare[0]
+            return (
+              <article key={card.id} className={`decision-card ${card.kind}`} onClick={() => openDetail(card.id, card.domain)}>
+                <div className="decision-icon"><StatusMark kind={card.kind} size="lg" /></div>
+                <div className="decision-content">
+                  <span className="decision-type">{card.typeLabel}</span>
+                  <h3>{card.title}</h3>
+                  <p>{card.text}</p>
+                  <button className="why-link" onClick={event => { event.stopPropagation(); openDetail(card.id, card.domain) }}>See why <Icon name="chevron" /></button>
+                </div>
+                <div className="decision-actions" onClick={event => event.stopPropagation()}>
+                  {decision ? <div className="decision-recorded"><Icon name="check" /><div><strong>Decision recorded</strong><span>{decision === 'applied' ? `${care?.title ?? 'Action'} applied` : decision === 'postponed' ? 'Postponed for later review' : 'Dismissed; reason pending'}</span></div><button onClick={() => setDecisionFor(card.id, null)}>Change</button></div> :
+                  <>{care ? <button className="primary-action" onClick={() => setDecisionFor(card.id, 'applied')}>Apply {care.title.charAt(0).toLowerCase() + care.title.slice(1)}</button> : <button className="primary-action" onClick={() => setDecisionFor(card.id, 'applied')}>Mark as checked</button>}<button className="secondary-action" onClick={() => setDecisionFor(card.id, 'postponed')}>Postpone</button><button className="tertiary-action" onClick={() => setDecisionFor(card.id, 'discarded')}>Dismiss</button></>}
+                </div>
+              </article>
+            )
+          })}
+
+          {modelNotice && <article className="decision-card model">
             <div className="decision-icon"><StatusMark kind="model" size="lg" /></div>
             <div className="decision-content">
               <span className="model-label"><StatusMark kind="model" size="sm" /> EARLY MODEL NOTICE</span>
-              <h3>Early sleep signal</h3>
-              <p>The model detects a decline in your rest before the rules confirm it. This is not an alert; it is a notice to monitor. The model cannot declare a critical state.</p>
+              <h3>{modelNotice.title}</h3>
+              <p>{modelNotice.text}</p>
             </div>
             <div className="decision-actions compact">
               <button className="secondary-action" onClick={() => setNotice('Notice marked as understood.')}>Understood</button>
-              <button className="tertiary-action" onClick={() => setDetailOpen(true)}>View detail</button>
+              <button className="tertiary-action" onClick={() => openDetail(`model:${modelNotice.domain}`, modelNotice.domain)}>View detail</button>
             </div>
-          </article>
+          </article>}
         </section>
       </main>
       {notice && <div className="toast" role="status"><Icon name="check" />{notice}</div>}
@@ -510,26 +593,45 @@ function GuideView() {
   )
 }
 
-function BodyView({ region, setRegion }: { region: BodyRegion; setRegion: (value: BodyRegion) => void }) {
+function BodyView({ region, setRegion, domains, missionDay }: { region: BodyRegion; setRegion: (value: BodyRegion) => void; domains?: DomainVM[]; missionDay: number }) {
   const details: Record<BodyRegion, { title: string; kind: StatusKind; status: string; lines: string[]; sensor?: string }> = {
     head: { title: 'Head', kind: 'attention', status: 'Attention', lines: ['Sleep trend · declining', 'Attention errors · above personal norm'] },
     eyes: { title: 'Eyes', kind: 'empty', status: 'No data yet', lines: ['We do not measure this yet.'], sensor: 'Requires a validated ocular imaging sensor.' },
     neck: { title: 'Neck', kind: 'empty', status: 'No data yet', lines: ['We do not measure this yet.'], sensor: 'Requires a validated neck fluid-shift sensor.' },
     torso: { title: 'Torso', kind: 'normal', status: 'Normal', lines: ['Vital signs · within personal range', 'Cardiovascular trend · stable'] },
+    arms: { title: 'Arms', kind: 'normal', status: 'Normal', lines: ['Upper-body exercise · within plan', 'Long-term trend · stable'] },
     legs: { title: 'Legs', kind: 'normal', status: 'Normal', lines: ['Exercise adherence · within plan', 'Long-term trend · stable'] },
   }
+  if (domains) {
+    // Head = sleep + mood, torso and legs = body domain, straight from the Ixchel engine
+    const get = (key: string) => domains.find(d => d.key === key)
+    const order: StatusKind[] = ['normal', 'model', 'attention', 'critical']
+    const worst = (...list: (DomainVM | undefined)[]) => list.filter((d): d is DomainVM => !!d).sort((a, b) => order.indexOf(b.kind) - order.indexOf(a.kind))[0]
+    const state = (d?: DomainVM) => (d ? `${d.status.toLowerCase()}${d.trend === 'down' ? ', declining' : ''}` : 'no data')
+    const sleep = get('sueno'), mood = get('psico'), body = get('fisico')
+    const head = worst(sleep, mood)
+    if (head) details.head = { title: 'Head', kind: head.kind, status: head.status, lines: [`Sleep · ${state(sleep)}`, `Attention and mood · ${state(mood)}`] }
+    if (body) {
+      details.torso = { title: 'Torso', kind: body.kind, status: body.status, lines: [`Heart rate and HRV · ${state(body)}`, body.description] }
+      details.arms = { title: 'Arms', kind: body.kind, status: body.status, lines: [`Upper-body exercise · ${state(body)}`] }
+      details.legs = { title: 'Legs', kind: body.kind, status: body.status, lines: [`Exercise and bone loading · ${state(body)}`] }
+    }
+  }
   const current = details[region]
+  const zoneKinds: Record<Zone, StatusKind> = { head: details.head.kind, neck: details.neck.kind, torso: details.torso.kind, arms: details.arms.kind, legs: details.legs.kind }
+  const regionList: BodyRegion[] = ['head', 'eyes', 'neck', 'torso', 'arms', 'legs']
   return (
     <div className="body-view">
-      <header className="compact-view-header"><div><p className="screen-kicker">INTERACTIVE DIGITAL TWIN</p><h1>My body</h1><p>Select a region to see what ARMOR measures—and what it does not.</p></div><span className="updated-label">Personal baseline · day 87</span></header>
+      <header className="compact-view-header"><div><p className="screen-kicker">INTERACTIVE DIGITAL TWIN</p><h1>My body</h1><p>Select a region to see what ARMOR measures—and what it does not.</p></div><span className="updated-label">Personal baseline · day {domains ? missionDay : 87}</span></header>
       <div className="body-layout">
-        <section className="body-map" aria-label="Front-facing interactive human silhouette">
-          <svg viewBox="0 0 300 560" role="img" aria-label="Front-facing human body outline"><circle cx="150" cy="58" r="39" /><path d="M111 104Q150 88 189 104L213 255 188 282 178 520H132L122 282 87 255Z" /><path d="m108 117-57 177 27 10 53-130M192 117l57 177-27 10-53-130M133 519l-8 26M177 519l8 26" /></svg>
-          <BodyPoint label="Head" className="head" kind="attention" active={region === 'head'} onClick={() => setRegion('head')} />
-          <BodyPoint label="Eyes" className="eyes" kind="empty" active={region === 'eyes'} onClick={() => setRegion('eyes')} />
-          <BodyPoint label="Neck" className="neck" kind="empty" active={region === 'neck'} onClick={() => setRegion('neck')} />
-          <BodyPoint label="Torso" className="torso" kind="normal" active={region === 'torso'} onClick={() => setRegion('torso')} />
-          <BodyPoint label="Legs" className="legs" kind="normal" active={region === 'legs'} onClick={() => setRegion('legs')} />
+        <section className="body-map body-map-3d" aria-label="Interactive 3D body model. Drag to rotate, click a zone to open it.">
+          <Suspense fallback={<div className="body3d"><p className="body3d-note">Loading 3D model…</p></div>}>
+            <Body3D zones={zoneKinds} selected={region === 'eyes' ? 'head' : region} onSelect={zone => setRegion(zone)} />
+          </Suspense>
+          <p className="body3d-hint">Drag to rotate · scroll to zoom · click a zone</p>
+          <div className="body-zone-list" role="group" aria-label="Body regions">
+            {regionList.map(r => <BodyPoint key={r} label={details[r].title} kind={details[r].kind} active={region === r} onClick={() => setRegion(r)} />)}
+          </div>
         </section>
         <aside className={`body-panel ${current.kind}`}>
           <div className="body-panel-state"><StatusMark kind={current.kind} size="lg" /><span>{current.status}</span></div>
@@ -543,8 +645,8 @@ function BodyView({ region, setRegion }: { region: BodyRegion; setRegion: (value
   )
 }
 
-function BodyPoint({ label, className, kind, active, onClick }: { label: string; className: string; kind: StatusKind; active: boolean; onClick: () => void }) {
-  return <button className={`body-map-point ${className} ${active ? 'active' : ''}`} onClick={onClick} aria-label={`Open ${label} data`}><StatusMark kind={kind} size="sm" /><span>{label}</span></button>
+function BodyPoint({ label, kind, active, onClick }: { label: string; kind: StatusKind; active: boolean; onClick: () => void }) {
+  return <button className={`body-map-point ${active ? 'active' : ''}`} onClick={onClick} aria-label={`Open ${label} data`} aria-pressed={active}><StatusMark kind={kind} size="sm" /><span>{label}</span></button>
 }
 
 function Sidebar({ muted = false, activeItem, onNavigate }: { muted?: boolean; activeItem: string; onNavigate: (label: string) => void }) {
@@ -579,13 +681,16 @@ function SystemBar({ darkMode, toggleTheme }: { darkMode: boolean; toggleTheme: 
 }
 
 function TopSimulation({ scenario, setScenario, missionDay, setMissionDay }: { scenario: Scenario; setScenario: (value: Scenario) => void; missionDay: number; setMissionDay: (value: number) => void }) {
+  const { status, today } = useContext(EngineCtx)
+  const delay = today ? (today.delayMin < 1 ? '< 1 min' : `${Math.round(today.delayMin)} min`) : '12 min'
+  const engineText = status === 'live' ? 'Ixchel engine live' : status === 'loading' ? 'Asking Ixchel engine…' : status === 'offline' ? 'Engine offline · sample data' : 'Scripted scenario'
   return (
     <header className="simulation-bar">
       <div className="simulation-label"><span>SIM</span><div><strong>Simulation</strong><small>Demonstration controls</small></div></div>
       <label className="scenario-control"><span>Scenario</span><select value={scenario} onChange={event => setScenario(event.target.value as Scenario)}><option>Nominal</option><option>Cumulative fatigue</option><option>Grief support</option><option>Emergency</option></select></label>
       <label className="day-control"><span>Mission day</span><input type="range" min="1" max="180" value={missionDay} onChange={event => setMissionDay(Number(event.target.value))} /><output>{missionDay}</output></label>
-      <div className="mission-phase"><small>DAY {missionDay} OF 180</small><strong>Mars transit</strong></div>
-      <div className="link-state"><i /><div><strong>Link active</strong><span>Response in 12 min</span></div></div>
+      <div className="mission-phase"><small>DAY {missionDay} OF 180</small><strong>{today ? today.phase : 'Mars transit'}</strong></div>
+      <div className={status === 'offline' ? 'link-state offline' : 'link-state'} title={status === 'offline' ? 'Start the API: cd ixchel && uvicorn api:app --port 8000' : undefined}><i /><div><strong>{engineText}</strong><span>Earth response in {delay}</span></div></div>
     </header>
   )
 }
