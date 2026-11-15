@@ -1,0 +1,8 @@
+[
+  { "id": "med-001", "name": "Sterile gauze", "category": "First aid", "quantity": 24, "unit": "packs", "expires": "2027-08-14" },
+  { "id": "med-002", "name": "Saline solution", "category": "Hydration", "quantity": 8, "unit": "bags", "expires": "2026-04-20" },
+  { "id": "med-003", "name": "Eye patch", "category": "Diagnostics", "quantity": 6, "unit": "units", "expires": "2028-02-01" },
+  { "id": "med-004", "name": "ECG sensor", "category": "Diagnostics", "quantity": 12, "unit": "units", "expires": "2027-11-30" },
+  { "id": "med-005", "name": "Cold pack", "category": "First aid", "quantity": 0, "unit": "units", "expires": "2027-03-22" },
+  { "id": "med-006", "name": "Elastic bandage", "category": "First aid", "quantity": 15, "unit": "rolls", "expires": "2029-01-18" }
+]
