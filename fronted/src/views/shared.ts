@@ -1,4 +1,4 @@
-export type ViewName = 'Today' | 'Daily check' | 'Timeline' | 'My body' | 'Environment' | 'Care' | 'Decision log' | 'How to read this'
+export type ViewName = 'Today' | 'Daily check' | 'Timeline' | 'My body' | 'Environment' | 'Care' | 'Decision log' | 'How to read this' | 'Commander view'
 
 export interface ViewProps {
   /** engine scenario key (nominal / fatiga / duelo), or null when the API is offline or the scenario is UI-only */

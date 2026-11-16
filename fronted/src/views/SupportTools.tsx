@@ -86,3 +86,170 @@ export function Journal() {
     </div>
   )
 }
+
+interface CompanionMessage { role: 'user' | 'companion'; text: string; timestamp: number }
+
+export function AICompanion({ onDone }: { onDone?: () => void }) {
+  const [messages, setMessages] = useState<CompanionMessage[]>([
+    { role: 'companion', text: 'Hello. I'm here with you. How are you feeling right now?', timestamp: Date.now() }
+  ])
+  const [input, setInput] = useState('')
+  const [photoMode, setPhotoMode] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+
+  const COMPANION_RESPONSES: Record<string, string[]> = {
+    tired: ['Rest is one of the best things you can do right now. Would you like a breathing exercise?', 'That makes sense. Would it help to talk about what's making you tired?'],
+    sad: ['I hear you. Those feelings are valid. Would you like to write about it, or talk to someone?', 'That's a lot to carry. Remember you have support on the crew and on Earth.'],
+    happy: ['I'm glad you're feeling good. Let's keep that momentum.', 'That's wonderful. What helped you feel this way?'],
+    worried: ['Worry is natural in space. Would grounding exercises help?', 'Let's break this down. What's the first thing you need to handle?'],
+    alone: ['You have people who care about you, even across the distance.', 'Would talking to a crewmate help? Or writing a message to Earth?'],
+    default: ['I'm here to listen and support you.', 'That sounds important. Tell me more.', 'How can I help right now?']
+  }
+
+  const getCompanionResponse = (text: string): string => {
+    const lower = text.toLowerCase()
+    for (const [keyword, responses] of Object.entries(COMPANION_RESPONSES)) {
+      if (lower.includes(keyword)) return responses[Math.floor(Math.random() * responses.length)]
+    }
+    return COMPANION_RESPONSES.default[Math.floor(Math.random() * COMPANION_RESPONSES.default.length)]
+  }
+
+  const sendMessage = () => {
+    if (!input.trim()) return
+    const userMsg: CompanionMessage = { role: 'user', text: input, timestamp: Date.now() }
+    setMessages(m => [...m, userMsg])
+    setInput('')
+    setTimeout(() => {
+      const response: CompanionMessage = {
+        role: 'companion',
+        text: getCompanionResponse(input),
+        timestamp: Date.now()
+      }
+      setMessages(m => [...m, response])
+    }, 500)
+  }
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setPhotoUrl(event.target?.result as string)
+        setPhotoMode(false)
+        setMessages(m => [...m, {
+          role: 'companion',
+          text: 'I see someone important to you. That's a good reminder that people care about you from Earth. Do you want to talk about them or about how you're feeling?',
+          timestamp: Date.now()
+        }])
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  return (
+    <div className="ai-companion">
+      {photoUrl && <div className="companion-photo"><img src={photoUrl} alt="Support companion" style={{ maxWidth: '100px', borderRadius: '8px', marginBottom: '1rem' }} /></div>}
+
+      {photoMode ? (
+        <div className="photo-upload">
+          <p>Upload a photo of yourself or someone important to you</p>
+          <label className="file-input">
+            <input type="file" accept="image/*" onChange={handlePhotoUpload} />
+            <span>Choose photo</span>
+          </label>
+          <button className="tertiary-action" onClick={() => setPhotoMode(false)}>Cancel</button>
+        </div>
+      ) : (
+        <>
+          <div className="companion-messages">
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.role}`}>
+                {msg.role === 'companion' && <Icon name="heart" />}
+                <p>{msg.text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="companion-input">
+            <input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyPress={e => e.key === 'Enter' && sendMessage()}
+              placeholder="How are you feeling…"
+            />
+            <button className="primary-action" onClick={sendMessage} disabled={!input.trim()}>
+              <Icon name="check" />
+            </button>
+            <button className="tertiary-action" onClick={() => setPhotoMode(true)} title="Upload photo">
+              <Icon name="users" />
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export interface Medication {
+  id: string; name: string; dosage: string; frequency: string; indication: string
+  adherence: number; sideEffects: string[]; warnings: string[]; daysRemaining: number
+}
+
+export function MedicationLog({ medications = [] }: { medications?: Medication[] }) {
+  const [selectedMed, setSelectedMed] = useState<string | null>(null)
+  const [logs, setLogs] = useState<Record<string, boolean>>({})
+
+  const defaultMeds: Medication[] = medications.length > 0 ? medications : [
+    { id: 'm1', name: 'Sleep Aid (Zaleplon)', dosage: '5 mg', frequency: 'As needed', indication: 'Sleep', adherence: 76, sideEffects: ['Grogginess'], warnings: ['No EVA in 8h after'], daysRemaining: 12 },
+    { id: 'm2', name: 'Anticoagulant', dosage: '5 mg', frequency: '2x daily', indication: 'Prevention', adherence: 100, sideEffects: ['Bruising'], warnings: ['CRITICAL: Suspend 24h before EVA'], daysRemaining: 28 },
+  ]
+
+  const selected = defaultMeds.find(m => m.id === selectedMed)
+
+  return (
+    <div className="medication-log">
+      {!selectedMed ? (
+        <>
+          <div className="meds-list">
+            {defaultMeds.map(med => (
+              <button key={med.id} className="med-item" onClick={() => setSelectedMed(med.id)}>
+                <strong>{med.name}</strong>
+                <small>{med.dosage} · {med.frequency}</small>
+                <span className="adherence">{med.adherence}%</span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <button className="back-button" onClick={() => setSelectedMed(null)}>
+            <Icon name="chevron" /> Back
+          </button>
+          {selected && (
+            <div className="med-detail">
+              <h3>{selected.name}</h3>
+              <p><strong>{selected.dosage}</strong> · {selected.frequency}</p>
+              <p className="indication">{selected.indication}</p>
+
+              {selected.warnings.some(w => w.includes('CRITICAL')) && (
+                <div className="warning-banner">
+                  <Icon name="alert" />
+                  <p>{selected.warnings.find(w => w.includes('CRITICAL'))}</p>
+                </div>
+              )}
+
+              <div className="med-actions">
+                <button className="primary-action" onClick={() => { setLogs(l => ({ ...l, [selected.id]: true })); alert('✓ Taken logged') }}>
+                  <Icon name="check" /> Taken
+                </button>
+                <button className="secondary-action" onClick={() => { setLogs(l => ({ ...l, [selected.id]: false })); alert('✗ Skipped logged') }}>
+                  Skipped
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

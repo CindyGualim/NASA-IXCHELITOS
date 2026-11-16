@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon'
 import { StatusMark } from '../components/StatusMark'
 import { SAFETY_PLAN, SELF_CARE } from '../content'
 import { careFor, logQuietly, supportApi, type DayPayload, type TodayVM } from '../ixchel'
-import { BreathingGuide, Grounding, Journal } from './SupportTools'
+import { AICompanion, BreathingGuide, Grounding, Journal, MedicationLog } from './SupportTools'
 import { DOMAIN_LABEL, delayText, type ViewProps } from './shared'
 
 export function CareView({ scenarioKey, missionDay, delayMin, goTo, notify, today, data }: ViewProps & { today: TodayVM | null; data: DayPayload | null }) {
@@ -35,10 +35,32 @@ export function CareView({ scenarioKey, missionDay, delayMin, goTo, notify, toda
       <header className="compact-view-header"><div><p className="screen-kicker">PSYCHOLOGICAL SUPPORT · WORKS WITHOUT EARTH</p><h1>Care</h1><p>Tools you can use right now, the countermeasures Ixchel suggests for you today, and people you can reach. Earth answers in {delayText(delayMin)}; everything on this page works before that.</p></div>
         {today?.griefDay && <span className="updated-label"><StatusMark kind="protocol" size="sm" /> Grief support active · day {today.griefDay} of 30</span>}</header>
 
+      <section className="care-block medication-alerts-section">
+        <div className="section-title-row"><div><p className="screen-kicker">MEDICATION ALERTS</p><h2>Today's medication schedule</h2></div></div>
+        <div className="medication-quick-view">
+          <article className="med-alert critical">
+            <Icon name="alert" />
+            <div>
+              <strong>Anticoagulant warning</strong>
+              <p>Suspend 24 hours before EVA or high-intensity exercise. No EVA planned today.</p>
+            </div>
+          </article>
+          <article className="med-adherence">
+            <Icon name="package" />
+            <div>
+              <strong>3 medications scheduled today</strong>
+              <p>Tap "Medications" below to log adherence and report any side effects.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section className="care-block">
         <div className="section-title-row"><div><p className="screen-kicker">RIGHT NOW</p><h2>Something to do in the next few minutes</h2></div></div>
         <div className="tool-tabs" role="tablist">
           {SELF_CARE.map(s => <button key={s.key} role="tab" aria-selected={tool === s.key} className={tool === s.key ? 'active' : ''} onClick={() => setTool(s.key)}><strong>{s.title}</strong><small>{s.minutes} min · {s.copy}</small></button>)}
+          <button key="companion" role="tab" aria-selected={tool === 'companion'} className={tool === 'companion' ? 'active' : ''} onClick={() => setTool('companion')}><strong>AI Companion</strong><small>Anytime · Personal support</small></button>
+          <button key="medications" role="tab" aria-selected={tool === 'medications'} className={tool === 'medications' ? 'active' : ''} onClick={() => setTool('medications')}><strong>Medications</strong><small>Daily · Track adherence</small></button>
         </div>
         <div className="tool-panel">
           {tool === 'breathing' && <BreathingGuide onDone={c => { api && logQuietly(api.event(t, 'self_care_breathing', `${c} breathing cycles`)); notify('Breathing session saved to your log.') }} />}
@@ -46,6 +68,8 @@ export function CareView({ scenarioKey, missionDay, delayMin, goTo, notify, toda
           {tool === 'journal' && <Journal />}
           {tool === 'peer' && <div className="peer-tool"><p>Your designated support crewmate gets a quiet request for ten minutes together. No reason is shared unless you add one.</p>
             <button className="primary-action" onClick={() => talk('peer_support_request', 'Support crewmate requested')}><Icon name="users" /> Ask my support crewmate</button></div>}
+          {tool === 'companion' && <AICompanion onDone={() => api && logQuietly(api.event(t, 'ai_companion_session'))} />}
+          {tool === 'medications' && <MedicationLog />}
         </div>
       </section>
 

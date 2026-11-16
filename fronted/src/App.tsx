@@ -8,6 +8,7 @@ const Body3D = lazy(() => import('./Body3D').then(m => ({ default: m.Body3D })))
 import { buildToday, careFor, logQuietly, reasonsFor, SCENARIO_KEY, supportApi, useEngineVersion, useIxchelDay, useScenarios, type DayPayload, type DecisionVM, type DomainVM, type LinkStatus, type ModelNoticeVM, type StatusKind, type TodayVM } from './ixchel'
 import { FORMS, GRIEF_PHASES } from './content'
 import { CareView } from './views/CareView'
+import { CommanderView } from './views/CommanderView'
 import { DailyCheckView, FormRunner } from './views/DailyCheckView'
 import { DecisionLogView } from './views/DecisionLogView'
 import { EnvironmentView } from './views/EnvironmentView'
@@ -392,6 +393,7 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
     Environment: { title: 'Environment', code: 'CABIN.CONTEXT', center: 'CABIN CONDITIONS · RULE OUT FIRST', body: <EnvironmentView {...viewProps} /> },
     Care: { title: 'Care', code: 'SUPPORT.HUB', center: 'PRIVATE CARE SPACE · CREW MEMBER 04', body: <CareView {...viewProps} today={today} data={data} /> },
     'Decision log': { title: 'Decision Log', code: 'RECORD.ASYNC', center: 'YOUR DECISIONS · REPORTS TO EARTH', body: <DecisionLogView {...viewProps} /> },
+    'Commander view': { title: 'Commander View', code: 'COMMAND.SUMMARY', center: 'OPERATIONAL CAPACITY · CONFIDENTIAL', body: <CommanderView {...viewProps} today={today} data={data} /> },
   }
   const section = SECTIONS[view]
   if (section) {
