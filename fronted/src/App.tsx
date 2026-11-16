@@ -6,7 +6,10 @@ import type { Zone } from './Body3D'
 // three.js only loads when "My body" opens, so the Today screen stays light
 const Body3D = lazy(() => import('./Body3D').then(m => ({ default: m.Body3D })))
 import { buildToday, careFor, logQuietly, reasonsFor, SCENARIO_KEY, supportApi, useEngineVersion, useIxchelDay, useScenarios, type DayPayload, type DecisionVM, type DomainVM, type LinkStatus, type ModelNoticeVM, type StatusKind, type TodayVM } from './ixchel'
-import { FORMS, GRIEF_PHASES } from './content'
+import { sensorAnomaliesFor, situationOf, type Situation } from './care'
+import { VoiceBar } from './components/VoiceBar'
+import { commandOf, useVoice } from './voice'
+import { FORMS, GRIEF_PHASES, SENSOR_CHANNELS } from './content'
 import { CareView } from './views/CareView'
 import { CommanderView } from './views/CommanderView'
 import { DailyCheckView, FormRunner } from './views/DailyCheckView'
@@ -29,7 +32,7 @@ const navigation = [
   { label: 'Today', icon: 'home' as const, active: true },
   { label: 'Daily check', icon: 'check' as const },
   { label: 'Timeline', icon: 'clock' as const },
-  { label: 'My body', icon: 'heart' as const },
+  { label: 'My body', icon: 'pulse' as const },
   { label: 'Environment', icon: 'scan' as const },
   { label: 'Care', icon: 'wellness' as const },
   { label: 'Decision log', icon: 'kit' as const },
@@ -382,7 +385,7 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
   if (view === 'Daily check') {
     return (
       <StandardShell darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} activeItem="Daily check" onNavigate={navigate} title="Daily Check" code="CHECKIN.30SEC" center="PRIVATE SELF-REPORT · CREW MEMBER 04">
-        <DailyCheckView {...viewProps} safetyActive={Boolean(today?.safety)} checkedToday={checkedToday} />
+        <DailyCheckView {...viewProps} scenario={scenario} today={today} data={data} safetyActive={Boolean(today?.safety)} checkedToday={checkedToday} />
         {notice && <div className="toast" role="status"><Icon name="check" />{notice}</div>}
       </StandardShell>
     )
@@ -391,7 +394,7 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
   const SECTIONS: Partial<Record<View, { title: string; code: string; center: string; body: ReactNode }>> = {
     Timeline: { title: 'Timeline', code: 'MISSION.HISTORY', center: `MISSION DAY ${missionDay} OF 180 · CREW MEMBER 04`, body: <TimelineView {...viewProps} /> },
     Environment: { title: 'Environment', code: 'CABIN.CONTEXT', center: 'CABIN CONDITIONS · RULE OUT FIRST', body: <EnvironmentView {...viewProps} /> },
-    Care: { title: 'Care', code: 'SUPPORT.HUB', center: 'PRIVATE CARE SPACE · CREW MEMBER 04', body: <CareView {...viewProps} today={today} data={data} /> },
+    Care: { title: 'Care', code: 'SUPPORT.HUB', center: 'PRIVATE CARE SPACE · CREW MEMBER 04', body: <CareView {...viewProps} scenario={scenario} today={today} data={data} /> },
     'Decision log': { title: 'Decision Log', code: 'RECORD.ASYNC', center: 'YOUR DECISIONS · REPORTS TO EARTH', body: <DecisionLogView {...viewProps} /> },
     'Commander view': { title: 'Commander View', code: 'COMMAND.SUMMARY', center: 'OPERATIONAL CAPACITY · CONFIDENTIAL', body: <CommanderView {...viewProps} today={today} data={data} /> },
   }
@@ -408,7 +411,7 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
   if (view === 'My body') {
     return (
       <StandardShell darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} activeItem="My body" onNavigate={navigate} title="My Body" code="DIGITAL.TWIN" center="INTERACTIVE BODY MAP · CREW MEMBER 04">
-        <BodyView region={bodyRegion} setRegion={setBodyRegion} domains={today?.domains} missionDay={missionDay} />
+        <BodyView region={bodyRegion} setRegion={setBodyRegion} domains={today?.domains} missionDay={missionDay} situation={situationOf(scenario, today)} data={data} />
       </StandardShell>
     )
   }
@@ -563,16 +566,35 @@ function StandardShell({ darkMode, toggleTheme, scenario, setScenario, missionDa
   )
 }
 
+const EMERGENCY_STEPS = [
+  { title: 'Move to the nearest safe position', copy: 'Stop the current task. Secure yourself and keep one hand free.' },
+  { title: 'Confirm breathing and responsiveness', copy: 'Check that the crew member can breathe, respond, and follow a simple instruction.' },
+  { title: 'Open the approved emergency protocol', copy: 'Continue with the mission-approved protocol for the observed emergency.' },
+]
+
 function EmergencyView({ onComplete, onExit, onNotify }: { onComplete: () => void; onExit: () => void; onNotify: () => void }) {
-  const steps = [
-    { title: 'Move to the nearest safe position', copy: 'Stop the current task. Secure yourself and keep one hand free.' },
-    { title: 'Confirm breathing and responsiveness', copy: 'Check that the crew member can breathe, respond, and follow a simple instruction.' },
-    { title: 'Open the approved emergency protocol', copy: 'Continue with the mission-approved protocol for the observed emergency.' },
-  ]
+  const steps = EMERGENCY_STEPS
   const [step, setStep] = useState(0)
   const [holding, setHolding] = useState(false)
   const [notified, setNotified] = useState(false)
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // hands may be busy or hurt: every step is read aloud and answered by voice
+  const voice = useVoice(true)
+  const stepRef = useRef(step)
+  stepRef.current = step
+  const advance = () => { if (stepRef.current === steps.length - 1) onComplete(); else setStep(v => v + 1) }
+  const readStep = (i: number) => voice.say(`Step ${i + 1} of ${steps.length}. ${steps[i].title}. ${steps[i].copy} Say "done" when you are ready, or "repeat".`)
+  useEffect(() => { readStep(step) }, [step, voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    voice.listen(text => {
+      const cmd = commandOf(text)
+      if (cmd === 'next') advance()
+      else if (cmd === 'repeat') readStep(stepRef.current)
+      else if (cmd === 'back') setStep(v => Math.max(0, v - 1))
+      else if (cmd === 'notify') { setNotified(true); onNotify(); voice.say('Commander notified. An emergency report is on its way to Earth.') }
+    })
+    return voice.stopListening
+  }, [voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
   const startExit = () => {
     setHolding(true)
     holdTimer.current = setTimeout(onExit, 3000)
@@ -590,7 +612,8 @@ function EmergencyView({ onComplete, onExit, onNotify }: { onComplete: () => voi
           <span>{String(step + 1).padStart(2, '0')}</span>
           <h1>{steps[step].title}</h1>
           <p>{steps[step].copy}</p>
-          <button className="emergency-next" onClick={() => step === steps.length - 1 ? onComplete() : setStep(value => value + 1)}><Icon name="check" /> Done, next step</button>
+          <button className="emergency-next" onClick={advance}><Icon name="check" /> Done, next step</button>
+          <VoiceBar voice={voice} hint='Say "done", "repeat", "back" or "notify commander"' onRepeat={() => readStep(step)} />
         </section>
         <div className="emergency-upcoming" aria-label="Upcoming emergency steps">
           {steps.slice(step + 1).map((item, index) => <div key={item.title}><span>{String(step + index + 2).padStart(2, '0')}</span><strong>{item.title}</strong></div>)}
@@ -650,15 +673,35 @@ function GuideView() {
   )
 }
 
-function BodyView({ region, setRegion, domains, missionDay }: { region: BodyRegion; setRegion: (value: BodyRegion) => void; domains?: DomainVM[]; missionDay: number }) {
+// sample state of each region when the engine is offline, per scenario (the engine overrides it when live)
+const BODY_SAMPLE: Record<Situation, Partial<Record<BodyRegion, { kind: StatusKind; status: string; lines: string[] }>>> = {
+  nominal: {},
+  fatigue: {
+    head: { kind: 'attention', status: 'Attention', lines: ['Sleep · 5.2 h average, declining', 'Attention errors · above personal norm'] },
+    torso: { kind: 'attention', status: 'Attention', lines: ['HRV · 47 ms, below your 60 ms norm', 'Resting heart rate · stable'] },
+  },
+  grief: {
+    head: { kind: 'protocol', status: 'Active support', lines: ['Mood · grief support, day 4 of 30', 'Sleep · lighter than usual'] },
+    legs: { kind: 'attention', status: 'Attention', lines: ['Exercise · 62 min/day, below plan', 'Movement · optional during grief'] },
+  },
+  emergency: {
+    torso: { kind: 'critical', status: 'Critical', lines: ['Heart rate · elevated during tasks', 'SpO₂ · below your norm', 'Observation · 72-hour window open'] },
+    head: { kind: 'attention', status: 'Attention', lines: ['Sleep aid · suspended', 'Stress · above your norm'] },
+  },
+}
+// which wearable channels belong to each region (same numbers the daily check asks about)
+const REGION_CHANNELS: Partial<Record<BodyRegion, (keyof typeof SENSOR_CHANNELS)[]>> = { head: ['sleep_h', 'sleep_quality'], torso: ['hr_rest', 'hrv', 'hr_elevated', 'o2_sat', 'temperature'], legs: ['steps', 'exercise_min'] }
+
+function BodyView({ region, setRegion, domains, missionDay, situation, data }: { region: BodyRegion; setRegion: (value: BodyRegion) => void; domains?: DomainVM[]; missionDay: number; situation: Situation; data: DayPayload | null }) {
   const details: Record<BodyRegion, { title: string; kind: StatusKind; status: string; lines: string[]; sensor?: string }> = {
-    head: { title: 'Head', kind: 'attention', status: 'Attention', lines: ['Sleep trend · declining', 'Attention errors · above personal norm'] },
+    head: { title: 'Head', kind: 'normal', status: 'Normal', lines: ['Sleep · within your norm', 'Attention and mood · within your norm'] },
     eyes: { title: 'Eyes', kind: 'empty', status: 'No data yet', lines: ['We do not measure this yet.'], sensor: 'Requires a validated ocular imaging sensor.' },
     neck: { title: 'Neck', kind: 'empty', status: 'No data yet', lines: ['We do not measure this yet.'], sensor: 'Requires a validated neck fluid-shift sensor.' },
     torso: { title: 'Torso', kind: 'normal', status: 'Normal', lines: ['Vital signs · within personal range', 'Cardiovascular trend · stable'] },
     arms: { title: 'Arms', kind: 'normal', status: 'Normal', lines: ['Upper-body exercise · within plan', 'Long-term trend · stable'] },
     legs: { title: 'Legs', kind: 'normal', status: 'Normal', lines: ['Exercise adherence · within plan', 'Long-term trend · stable'] },
   }
+  for (const [r, s] of Object.entries(BODY_SAMPLE[situation]) as [BodyRegion, { kind: StatusKind; status: string; lines: string[] }][]) details[r] = { ...details[r], ...s }
   if (domains) {
     // Head = sleep + mood, torso and legs = body domain, straight from the Ixchel engine
     const get = (key: string) => domains.find(d => d.key === key)
@@ -667,13 +710,17 @@ function BodyView({ region, setRegion, domains, missionDay }: { region: BodyRegi
     const state = (d?: DomainVM) => (d ? `${d.status.toLowerCase()}${d.trend === 'down' ? ', declining' : ''}` : 'no data')
     const sleep = get('sueno'), mood = get('psico'), body = get('fisico')
     const head = worst(sleep, mood)
-    if (head) details.head = { title: 'Head', kind: head.kind, status: head.status, lines: [`Sleep · ${state(sleep)}`, `Attention and mood · ${state(mood)}`] }
+    if (head) details.head = { title: 'Head', kind: situation === 'grief' && head.kind === 'normal' ? 'protocol' : head.kind, status: situation === 'grief' && head.kind === 'normal' ? 'Active support' : head.status, lines: [`Sleep · ${state(sleep)}`, `Attention and mood · ${state(mood)}`, ...(sleep ? [sleep.description] : [])] }
     if (body) {
-      details.torso = { title: 'Torso', kind: body.kind, status: body.status, lines: [`Heart rate and HRV · ${state(body)}`, body.description] }
+      const torsoKind: StatusKind = situation === 'emergency' ? 'critical' : body.kind
+      details.torso = { title: 'Torso', kind: torsoKind, status: situation === 'emergency' ? 'Critical' : body.status, lines: [`Heart rate and HRV · ${state(body)}`, body.description, ...(situation === 'emergency' ? ['Observation · 72-hour window open'] : [])] }
       details.arms = { title: 'Arms', kind: body.kind, status: body.status, lines: [`Upper-body exercise · ${state(body)}`] }
       details.legs = { title: 'Legs', kind: body.kind, status: body.status, lines: [`Exercise and bone loading · ${state(body)}`] }
     }
   }
+  // wearable readings for the region, the same ones the daily check asks about
+  const anomalies = sensorAnomaliesFor(situation, data, missionDay)
+  const wearables = (REGION_CHANNELS[region] ?? []).flatMap(ch => { const a = anomalies.find(x => x.channel === ch); return a ? [{ ch, a }] : [] })
   const current = details[region]
   const zoneKinds: Record<Zone, StatusKind> = { head: details.head.kind, neck: details.neck.kind, torso: details.torso.kind, arms: details.arms.kind, legs: details.legs.kind }
   const regionList: BodyRegion[] = ['head', 'eyes', 'neck', 'torso', 'arms', 'legs']
@@ -694,6 +741,9 @@ function BodyView({ region, setRegion, domains, missionDay }: { region: BodyRegi
           <div className="body-panel-state"><StatusMark kind={current.kind} size="lg" /><span>{current.status}</span></div>
           <p className="screen-kicker">SELECTED REGION</p><h2>{current.title}</h2>
           <div className="body-metrics">{current.lines.map(line => { const [label, value] = line.split(' · '); return <div key={line}><small>{label}</small>{value && <strong>{value}</strong>}</div> })}</div>
+          {wearables.length > 0 && <div className="body-wearables"><p className="screen-kicker">FROM YOUR WEARABLES · THIS WEEK VS. YOUR NORM</p>
+            {wearables.map(({ ch, a }) => <div key={ch} className={Math.abs(a.delta_pct) >= 10 ? 'off' : ''}><small>{SENSOR_CHANNELS[ch].label}</small><strong>{a.raw_value != null ? `${a.raw_value.toLocaleString('en-US')} ${SENSOR_CHANNELS[ch].unit}` : '—'}</strong><span>{a.delta_pct < 0 ? '↓' : '↑'} {Math.abs(Math.round(a.delta_pct))}%{a.norm_value != null ? ` · norm ${a.norm_value.toLocaleString('en-US')}` : ''}</span></div>)}
+          </div>}
           {current.sensor && <div className="sensor-needed"><Icon name="scan" /><div><strong>Not instrumented</strong><p>{current.sensor}</p></div></div>}
           <p className="body-panel-note">ARMOR only shows measurements supported by an available, validated source.</p>
         </aside>

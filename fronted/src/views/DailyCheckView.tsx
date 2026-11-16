@@ -1,10 +1,13 @@
 // Daily check: check-in (CK1–CK8) + safety item (SF1) + state selector (ST01–ST11), scored by the team's
 // self-report layer (autoreporte.py). Suggested questionnaires run inline. Safety always prevails.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { StatusMark } from '../components/StatusMark'
-import { ALERT_TEXT, CHECKIN, FORMS, PROTOCOL_NAME, SAFETY_ITEM, SAFETY_STEPS, SENSOR_CHANNELS, STATES, formsFromPlan, getMockSensorAnomalies, getSensorQuestions, type FormDef, type SensorAnomaly, type SensorQuestion } from '../content'
-import { supportApi, logQuietly, type CheckinResult, type FormResult, type SupportAlert } from '../ixchel'
+import { VoiceBar } from '../components/VoiceBar'
+import { commandOf, optionOf, readOptions, useVoice } from '../voice'
+import { PROTOCOL_OF_SITUATION, sensorAnomaliesFor, situationOf } from '../care'
+import { ALERT_TEXT, CHECKIN, FORMS, PROTOCOL_NAME, SAFETY_ITEM, SAFETY_STEPS, SENSOR_CHANNELS, STATES, formsFromPlan, getSensorQuestions, type FormDef, type SensorAnomaly, type SensorQuestion } from '../content'
+import { supportApi, logQuietly, type CheckinResult, type DayPayload, type FormResult, type SupportAlert, type TodayVM } from '../ixchel'
 import { BreathingGuide } from './SupportTools'
 import { DOMAIN_LABEL, delayText, fmt, type ViewProps } from './shared'
 
@@ -102,7 +105,7 @@ export function FormRunner({ form, onSubmit, onClose }: { form: FormDef; onSubmi
 export function SafetySupport({ acute, delayMin, onAsq, onPlan, onPeer }: { acute: boolean | null; delayMin: number; onAsq?: () => void; onPlan: () => void; onPeer: () => void }) {
   return (
     <section className="safety-support" role="alert">
-      <div className="safety-head"><Icon name="heart" /><div><p className="screen-kicker">YOU ARE NOT ALONE</p><h2>Thank you for telling us. Support is on its way.</h2>
+      <div className="safety-head"><Icon name="users" /><div><p className="screen-kicker">YOU ARE NOT ALONE</p><h2>Thank you for telling us. Support is on its way.</h2>
         <p>Your crew medical officer and the flight surgeon are notified. With the {delayText(delayMin)} delay, an emergency report is already travelling to Earth.</p></div></div>
       <ol className="safety-steps">{(acute ? SAFETY_STEPS.acute : SAFETY_STEPS.notAcute).map(s => <li key={s}>{s}</li>)}</ol>
       {acute === null && onAsq && <div className="safety-next"><p><strong>Five short questions</strong> help the team know how to support you right now.</p><button className="primary-action" onClick={onAsq}>Answer the 5 questions</button></div>}
@@ -116,92 +119,84 @@ export function SafetySupport({ acute, delayMin, onAsq, onPlan, onPeer }: { acut
   )
 }
 
-// ---------------------------------------------------------------- sensor context check (before the check-in, when a protocol is active)
-// Shows caring questions generated from real sensor anomalies detected by Garmin/ring/suit.
-function SensorContextCheck({ protocol, missionDay, onAnswered }: { protocol: string; missionDay: number; onAnswered: () => void }) {
-  const anomalies: SensorAnomaly[] = getMockSensorAnomalies(protocol, missionDay)
+// ---------------------------------------------------------------- sensor context check (before the check-in)
+// Caring questions triggered by what the wearables saw this week, phrased for the active protocol.
+export function SensorContextCheck({ protocol, anomalies, voiceDefault = false, onAnswered }: { protocol: string; anomalies: SensorAnomaly[]; voiceDefault?: boolean; onAnswered: (answers: { channel: string; question: string; answer: string }[]) => void }) {
   const questions: SensorQuestion[] = getSensorQuestions(protocol, anomalies)
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<number, string>>({})
-  const [showFollowUp, setShowFollowUp] = useState<Record<number, boolean>>({})
+  const voice = useVoice(voiceDefault)
+  const state = useRef({ step, answers, questions })
+  state.current = { step, answers, questions }
 
-  if (questions.length === 0) return null
-
-  const current = questions[step]
+  const current = questions[step] as SensorQuestion | undefined
   const isLast = step === questions.length - 1
-  const answered = answers[step] !== undefined
-
-  // The relevant anomaly for the current question
-  const anom = anomalies.find(a => a.channel === current.trigger_channel)
-  const channelLabel = SENSOR_CHANNELS[current.trigger_channel]?.label ?? current.trigger_channel
-  const isBelow = anom && anom.delta_pct < 0
-  const changeLabel = anom ? `${isBelow ? '↓' : '↑'} ${Math.abs(Math.round(anom.delta_pct))}% vs. your norm` : ''
-
-  const choose = (option: string) => {
-    setAnswers(a => ({ ...a, [step]: option }))
-    if (current.follow_up && option !== 'Prefer not to say' && option !== questions[step].options[0]) {
-      setShowFollowUp(s => ({ ...s, [step]: true }))
-    }
+  const answer = answers[step]
+  const finish = () => onAnswered(questions.map((q, i) => ({ channel: q.trigger_channel, question: q.question, answer: answers[i] ?? 'Prefer not to say' })))
+  const readCurrent = () => { const q = state.current.questions[state.current.step]; if (q) voice.say(readOptions(`Question ${state.current.step + 1} of ${state.current.questions.length}. ${q.question}`, q.options)) }
+  const choose = (opt: string) => {
+    setAnswers(a => ({ ...a, [step]: opt }))
+    const q = state.current.questions[state.current.step]
+    const followUp = q.follow_up && opt !== 'Prefer not to say' && opt !== q.options[q.options.length - 1] ? ` ${q.follow_up}` : ''
+    voice.say(`${opt}.${followUp} ${state.current.step === state.current.questions.length - 1 ? 'Say "done" to continue to the daily check.' : 'Say "next" for the next question.'}`)
   }
 
+  useEffect(() => { if (questions.length) readCurrent() }, [step, voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!questions.length) return
+    voice.listen(text => {
+      const { step: s, answers: a, questions: qs } = state.current
+      const cmd = commandOf(text)
+      if (cmd === 'repeat') return readCurrent()
+      if (cmd === 'skip') { setAnswers(x => ({ ...x, [s]: 'Prefer not to say' })); return }
+      if (cmd === 'next' && a[s] !== undefined) { if (s === qs.length - 1) finish(); else setStep(s + 1); return }
+      const opt = optionOf(text, [...qs[s].options, 'Prefer not to say'])
+      if (opt) choose(opt)
+      else voice.say('I did not catch that. Say the option number, "repeat" or "skip".')
+    })
+    return voice.stopListening
+  }, [voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!current) return null
+  const anom = anomalies.find(a => a.channel === current.trigger_channel)
+  const channel = SENSOR_CHANNELS[current.trigger_channel]
+  const below = (anom?.delta_pct ?? 0) < 0
+  const showFollowUp = Boolean(current.follow_up && answer && answer !== 'Prefer not to say' && answer !== current.options[current.options.length - 1])
+
   return (
-    <section className="sensor-context-check">
-      <div className="sensor-check-header">
-        <div className="sensor-source">
-          <Icon name="pulse" />
-          <div>
-            <span className="screen-kicker">SENSOR CHECK · {step + 1} OF {questions.length}</span>
-            <strong>{channelLabel}</strong>
-            {anom && <span className={isBelow ? 'sensor-delta below' : 'sensor-delta above'}>{changeLabel}</span>}
-          </div>
+    <section className="sensor-check" aria-label="Sensor check">
+      <VoiceBar voice={voice} compact hint='Say the option number, "repeat", "skip" or "next"' onRepeat={readCurrent} />
+      <header>
+        <div>
+          <p className="screen-kicker">WHAT YOUR SENSORS SAW · {step + 1} OF {questions.length}</p>
+          <strong>{channel.label}</strong>
+          {anom && <span className={`sensor-delta ${below ? 'below' : 'above'}`}>{below ? '↓' : '↑'} {Math.abs(Math.round(anom.delta_pct))}% vs. your norm{anom.raw_value != null && anom.norm_value != null ? ` · ${anom.raw_value.toLocaleString('en-US')} ${channel.unit} this week, usually ${anom.norm_value.toLocaleString('en-US')}` : ''}</span>}
         </div>
-        <div className="sensor-progress">
-          {questions.map((_, i) => <span key={i} className={i < step ? 'done' : i === step ? 'active' : ''} />)}
-        </div>
-      </div>
-
-      <p className="sensor-question">{current.question}</p>
-
-      {showFollowUp[step] && current.follow_up && (
-        <p className="sensor-follow-up"><Icon name="heart" /> {current.follow_up}</p>
-      )}
-
-      <div className="sensor-options">
+        <div className="sensor-progress">{questions.map((_, i) => <span key={i} className={i < step ? 'done' : i === step ? 'active' : ''} />)}</div>
+      </header>
+      <h2>{current.question}</h2>
+      <div className="answer-options">
         {[...current.options, 'Prefer not to say'].map(opt => (
-          <button
-            key={opt}
-            className={answers[step] === opt ? 'selected' : ''}
-            onClick={() => choose(opt)}
-          >
-            {answers[step] === opt && <Icon name="check" />}
-            {opt}
-          </button>
+          <button key={opt} className={answer === opt ? 'selected' : ''} onClick={() => choose(opt)}>{answer === opt && <Icon name="check" />}{opt}</button>
         ))}
       </div>
-
-      {answered && (
-        <div className="sensor-nav">
-          {isLast ? (
-            <button className="primary-action" onClick={onAnswered}>
-              Continue to daily check <Icon name="chevron" />
-            </button>
-          ) : (
-            <button className="secondary-action" onClick={() => setStep(s => s + 1)}>
-              Next question <Icon name="chevron" />
-            </button>
-          )}
-        </div>
-      )}
-
-      <p className="sensor-note">
-        <Icon name="shield" /> Your answers are recorded in your private health log. They help Ixchel understand whether a change in your numbers has an emotional cause or a physical one.
-      </p>
+      {showFollowUp && <p className="sensor-follow-up">{current.follow_up}</p>}
+      <div className="sensor-nav">
+        <p className="privacy-copy"><Icon name="shield" />Goes to your private log only. It helps Ixchel tell a physical cause from an emotional one.</p>
+        {answer && (isLast
+          ? <button className="primary-action" onClick={finish}>Continue to the daily check <Icon name="chevron" /></button>
+          : <button className="secondary-action" onClick={() => setStep(s => s + 1)}>Next <Icon name="chevron" /></button>)}
+        {!answer && <button className="tertiary-action" onClick={finish}>Skip for today</button>}
+      </div>
     </section>
   )
 }
 
 // ---------------------------------------------------------------- the view
-export function DailyCheckView({ scenarioKey, missionDay, delayMin, goTo, notify, safetyActive = false, checkedToday = false }: ViewProps & { safetyActive?: boolean; checkedToday?: boolean }) {
+export function DailyCheckView({ scenarioKey, scenario, today, data, missionDay, delayMin, goTo, notify, safetyActive = false, checkedToday = false }: ViewProps & { scenario: string; today: TodayVM | null; data: DayPayload | null; safetyActive?: boolean; checkedToday?: boolean }) {
+  const situation = situationOf(scenario, today)
+  const anomalies = sensorAnomaliesFor(situation, data, missionDay)
+  const [sensorDone, setSensorDone] = useState<number | null>(null)   // mission day whose sensor check was answered
   const [answers, setAnswers] = useState<Record<string, number | string>>({})
   const [sf1, setSf1] = useState<number | null>(null)
   const [states, setStates] = useState<string[]>([])
@@ -256,6 +251,14 @@ export function DailyCheckView({ scenarioKey, missionDay, delayMin, goTo, notify
         }
         return r
       }} />}
+
+      {!result && !safety && sensorDone !== missionDay && (
+        <SensorContextCheck key={`${situation}-${missionDay}`} protocol={PROTOCOL_OF_SITUATION[situation]} anomalies={anomalies} voiceDefault={situation === 'emergency'} onAnswered={list => {
+          setSensorDone(missionDay)
+          if (list.length && api) logQuietly(api.event(t, 'sensor_check', list.map(a => `${SENSOR_CHANNELS[a.channel as keyof typeof SENSOR_CHANNELS]?.label ?? a.channel}: ${a.answer}`).join(' · ')))
+          if (list.length) notify('Thank you. Your answers are in your private log.')
+        }} />
+      )}
 
       {!result && <>
         <div className="check-progress"><i style={{ width: `${Math.max(6, (done / total) * 100)}%` }} /></div>

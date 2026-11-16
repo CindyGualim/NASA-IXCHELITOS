@@ -19,6 +19,7 @@ const EVENT_TEXT: Record<string, string> = {
   peer_support_request: 'Asked the support crewmate', conference_request: 'Requested a private conference', cmo_request: 'Notified the crew medical officer',
   family_message: 'Queued a family message', self_care_breathing: 'Guided breathing', self_care_grounding: 'Grounding exercise',
   emergencia: 'Emergency reported', emergencia_fin: 'Emergency closed, 72-hour window opened',
+  ai_companion_session: 'Companion session', sensor_check: 'Sensor check answered', medication_taken: 'Medication taken', medication_skipped: 'Medication skipped', medication_side_effect: 'Side effect reported',
 }
 
 export function DecisionLogView({ scenarioKey, missionDay, delayMin, notify, version }: ViewProps) {

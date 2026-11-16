@@ -300,7 +300,7 @@ export function careFor(domain: string, p: DayPayload | null) {
   if (!isHealth(domain)) return []
   const picked = new Set((p?.salida.recomendaciones ?? []).filter(r => r.tipo === 'aprendida' && r.categoria === domain).map(r => r.accion))
   return [...ARMS[domain]].sort((a, b) => Number(picked.has(b)) - Number(picked.has(a))).slice(0, 3)
-    .map(k => ({ key: k, ...CARE[k], tag: picked.has(k) ? 'Ixchel’s pick: best past response for you' : '' }))
+    .map(k => ({ key: k, ...CARE[k], tag: picked.has(k) ? "Ixchel’s pick: best past response for you" : "" }))
 }
 
 export function buildToday(p: DayPayload, missionDay: number): TodayVM {

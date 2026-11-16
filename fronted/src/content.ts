@@ -194,7 +194,7 @@ export const GRIEF_PHASES: { id: string; window: string; goal: string; from: num
     'Answer the safety question at 24 hours, even if you feel stable.',
   ] },
   { id: 'N2', window: 'Days 1 to 7', goal: 'Support and a lighter workload', from: 1, to: 7, steps: [
-    'Review today’s schedule with the commander; your workload can be reduced.',
+    "Review today’s schedule with the commander; your workload can be reduced.",
     'Private conference with the psychologist (2 to 3 per week this first week).',
     'Join the funeral or a ritual remotely, if you wish.',
     'One-minute grief check each day.',
@@ -266,7 +266,7 @@ export interface SensorAnomaly {
 // The question is phrased as caring observation — never accusation, never diagnosis.
 // Answers feed into the support layer, NOT into the alert system.
 
-type SensorQuestion = {
+export type SensorQuestion = {
   trigger_channel: SensorChannel
   trigger_threshold: number    // |delta_pct| that makes the question relevant
   question: string
@@ -275,6 +275,45 @@ type SensorQuestion = {
 }
 
 export const PROTOCOL_SENSOR_CHECKS: Record<string, SensorQuestion[]> = {
+  // nominal mission: the sensors are inside the personal norm, so nothing is asked
+  nominal: [],
+
+  fatiga: [
+    {
+      trigger_channel: 'sleep_h',
+      trigger_threshold: 10,
+      question: 'Your ring shows you have slept less than your norm this week. What is keeping you from a full night: the schedule, the cabin, or your mind?',
+      follow_up: 'Ixchel can propose an anchor nap and a morning light plan; the shift order can be adjusted with the commander.',
+      options: ['Shift changes or late tasks', 'Noise, light or temperature in the cabin', 'Thoughts keep me awake', 'I feel I sleep enough'],
+    },
+    {
+      trigger_channel: 'sleep_quality',
+      trigger_threshold: 10,
+      question: 'Your sleep has been lighter and more broken than usual. Do you wake up rested, even on the nights that look short?',
+      follow_up: 'Broken sleep restores less than the hours suggest. A protected 90-minute nap before duty is the first thing to try.',
+      options: ['Rarely rested', 'Some mornings', 'Rested, the ring is wrong'],
+    },
+    {
+      trigger_channel: 'exercise_min',
+      trigger_threshold: 15,
+      question: 'Your Garmin shows fewer active minutes than usual this week. Is it lack of time, lack of energy, or something else?',
+      follow_up: 'Less movement feeds the fatigue loop. A lighter session still counts, and the plan can be rebalanced.',
+      options: ['No energy for it', 'No room in the schedule', 'Discomfort or pain', 'I chose to rest'],
+    },
+    {
+      trigger_channel: 'hrv',
+      trigger_threshold: 10,
+      question: 'Your recovery score (HRV) has been below your norm for days. How does your body feel when you wake up?',
+      options: ['Heavy, slow to start', 'Fine once I am moving', 'Tense or wired'],
+    },
+    {
+      trigger_channel: 'hr_rest',
+      trigger_threshold: 5,
+      question: 'Your resting heart rate is above your usual. Caffeine, stress, a late workout, or not feeling well?',
+      options: ['More caffeine than usual', 'Stress or workload', 'Late or intense exercise', 'I do not feel well'],
+    },
+  ],
+
   luto: [
     {
       trigger_channel: 'steps',
@@ -366,7 +405,7 @@ export const PROTOCOL_SENSOR_CHECKS: Record<string, SensorQuestion[]> = {
       trigger_channel: 'exercise_min',
       trigger_threshold: 35,
       question: 'Over the past 10 days, your time in physical activity has gone down compared to your personal norm. We noticed — not to flag you, but because movement often connects with how things feel inside. Has anything changed for you lately?',
-      follow_up: 'That's completely valid. We\'re here to understand, not to judge.',
+      follow_up: "That's completely valid. We're here to understand, not to judge.",
       options: ['Motivation has been lower', 'Physically not up to it', 'Too busy with mission tasks', 'Everything\'s fine'],
     },
     {

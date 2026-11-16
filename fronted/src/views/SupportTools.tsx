@@ -1,6 +1,9 @@
 // Self-care tools that work without Earth: guided breathing, 5-4-3-2-1 grounding and a private journal.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
+import { MOOD_LABEL, adherenceOf, loadMedRecord, reply, saveMedRecord, type Analysis, type MedAlert, type MedRecord, type Medication, type MedicationPlan, type Mood, type Severity } from '../care'
+import { VoiceBar } from '../components/VoiceBar'
+import { commandOf, useVoice } from '../voice'
 
 const PHASES = [
   { label: 'Inhale', seconds: 4 },
@@ -87,169 +90,202 @@ export function Journal() {
   )
 }
 
-interface CompanionMessage { role: 'user' | 'companion'; text: string; timestamp: number }
+// ---------------------------------------------------------------- AI companion
+interface CompanionMessage { role: 'user' | 'companion'; text: string }
+const QUICK = ['I am tired', 'I feel low', 'I am worried', 'I feel alone', 'I am okay']
+const PHOTO_KEY = 'armor-companion-photo'
 
-export function AICompanion({ onDone }: { onDone?: () => void }) {
-  const [messages, setMessages] = useState<CompanionMessage[]>([
-    { role: 'companion', text: 'Hello. I'm here with you. How are you feeling right now?', timestamp: Date.now() }
-  ])
+type FaceBox = { boundingBox: { x: number; y: number; width: number; height: number } }
+type FaceDetectorCtor = new (opts?: { fastMode?: boolean; maxDetectedFaces?: number }) => { detect: (img: HTMLImageElement) => Promise<FaceBox[]> }
+
+export function AICompanion({ analysis, missionDay, voiceDefault = false, onExchange, onEnd, openTool }: {
+  analysis: Analysis
+  missionDay: number
+  voiceDefault?: boolean
+  onExchange?: (userText: string, mood: Mood) => void
+  onEnd?: (summary: string, exchanges: number) => void
+  openTool?: (tool: 'breathing' | 'grounding' | 'journal' | 'peer') => void
+}) {
+  const voice = useVoice(voiceDefault)
+  const [messages, setMessages] = useState<CompanionMessage[]>([{ role: 'companion', text: analysis.opening }])
   const [input, setInput] = useState('')
-  const [photoMode, setPhotoMode] = useState(false)
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photo, setPhoto] = useState<{ url: string; focus: string } | null>(() => {
+    try { return JSON.parse(localStorage.getItem(PHOTO_KEY) ?? 'null') } catch { return null }
+  })
+  const [showData, setShowData] = useState(false)
+  const [count, setCount] = useState(0)
+  const exchanges = useRef(0)
+  const ended = useRef(false)
 
-  const COMPANION_RESPONSES: Record<string, string[]> = {
-    tired: ['Rest is one of the best things you can do right now. Would you like a breathing exercise?', 'That makes sense. Would it help to talk about what's making you tired?'],
-    sad: ['I hear you. Those feelings are valid. Would you like to write about it, or talk to someone?', 'That's a lot to carry. Remember you have support on the crew and on Earth.'],
-    happy: ['I'm glad you're feeling good. Let's keep that momentum.', 'That's wonderful. What helped you feel this way?'],
-    worried: ['Worry is natural in space. Would grounding exercises help?', 'Let's break this down. What's the first thing you need to handle?'],
-    alone: ['You have people who care about you, even across the distance.', 'Would talking to a crewmate help? Or writing a message to Earth?'],
-    default: ['I'm here to listen and support you.', 'That sounds important. Tell me more.', 'How can I help right now?']
+  useEffect(() => {
+    setMessages([{ role: 'companion', text: analysis.opening }])
+    exchanges.current = 0; ended.current = false; setCount(0)
+  }, [analysis.opening])
+
+  const finish = () => {
+    if (ended.current || exchanges.current === 0) return
+    ended.current = true
+    onEnd?.(`${MOOD_LABEL[analysis.mood]} · ${exchanges.current} exchanges · day ${missionDay}`, exchanges.current)
   }
+  useEffect(() => finish, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const getCompanionResponse = (text: string): string => {
-    const lower = text.toLowerCase()
-    for (const [keyword, responses] of Object.entries(COMPANION_RESPONSES)) {
-      if (lower.includes(keyword)) return responses[Math.floor(Math.random() * responses.length)]
-    }
-    return COMPANION_RESPONSES.default[Math.floor(Math.random() * COMPANION_RESPONSES.default.length)]
-  }
-
-  const sendMessage = () => {
-    if (!input.trim()) return
-    const userMsg: CompanionMessage = { role: 'user', text: input, timestamp: Date.now() }
-    setMessages(m => [...m, userMsg])
+  const send = (text: string) => {
+    const t = text.trim()
+    if (!t) return
+    const turn = exchanges.current++
+    setCount(exchanges.current)
+    setMessages(m => [...m, { role: 'user', text: t }])
     setInput('')
-    setTimeout(() => {
-      const response: CompanionMessage = {
-        role: 'companion',
-        text: getCompanionResponse(input),
-        timestamp: Date.now()
-      }
-      setMessages(m => [...m, response])
-    }, 500)
+    onExchange?.(t, analysis.mood)
+    const answer = reply(t, analysis, turn)
+    window.setTimeout(() => { setMessages(m => [...m, { role: 'companion', text: answer }]); voice.say(answer) }, 450)
   }
+  // hands-free: the opening line is read aloud and whatever is said becomes the message
+  useEffect(() => { voice.say(analysis.opening) }, [analysis.opening, voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    voice.listen(text => { if (commandOf(text) === 'repeat') voice.say(messagesRef.current[messagesRef.current.length - 1]?.text ?? ''); else send(text) })
+    return voice.stopListening
+  }, [voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setPhotoUrl(event.target?.result as string)
-        setPhotoMode(false)
-        setMessages(m => [...m, {
-          role: 'companion',
-          text: 'I see someone important to you. That's a good reminder that people care about you from Earth. Do you want to talk about them or about how you're feeling?',
-          timestamp: Date.now()
-        }])
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async ev => {
+      const url = ev.target?.result as string
+      let focus = 'center 30%'
+      const Detector = (window as unknown as { FaceDetector?: FaceDetectorCtor }).FaceDetector
+      if (Detector) {
+        try {
+          const img = new Image(); img.src = url
+          await new Promise(res => { img.onload = res })
+          const [face] = await new Detector({ fastMode: true, maxDetectedFaces: 1 }).detect(img)
+          if (face) { const b = face.boundingBox; focus = `${((b.x + b.width / 2) / img.naturalWidth * 100).toFixed(0)}% ${((b.y + b.height / 2) / img.naturalHeight * 100).toFixed(0)}%` }
+        } catch { /* detector unavailable: keep the default framing */ }
       }
-      reader.readAsDataURL(file)
+      const next = { url, focus }
+      setPhoto(next)
+      try { localStorage.setItem(PHOTO_KEY, JSON.stringify(next)) } catch { /* too large for storage: kept for this session */ }
+      setMessages(m => [...m, { role: 'companion', text: 'I have them here with us now. When the day gets long, this face is a good place to look. Want to tell me who they are?' }])
     }
+    reader.readAsDataURL(file)
   }
 
+  const sevClass = (s: Severity) => (s === 'high' ? 'high' : s === 'watch' ? 'watch' : '')
   return (
-    <div className="ai-companion">
-      {photoUrl && <div className="companion-photo"><img src={photoUrl} alt="Support companion" style={{ maxWidth: '100px', borderRadius: '8px', marginBottom: '1rem' }} /></div>}
-
-      {photoMode ? (
-        <div className="photo-upload">
-          <p>Upload a photo of yourself or someone important to you</p>
-          <label className="file-input">
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} />
-            <span>Choose photo</span>
-          </label>
-          <button className="tertiary-action" onClick={() => setPhotoMode(false)}>Cancel</button>
+    <div className="companion">
+      <aside className="companion-side">
+        <div className="companion-anchor">
+          {photo
+            ? <img src={photo.url} alt="Your anchor" style={{ objectPosition: photo.focus }} />
+            : <label className="companion-photo-empty"><input type="file" accept="image/*" onChange={onPhoto} /><span>Add a photo</span><small>you, or someone from home</small></label>}
+          {photo && <label className="companion-photo-change"><input type="file" accept="image/*" onChange={onPhoto} />Change photo</label>}
         </div>
-      ) : (
-        <>
-          <div className="companion-messages">
-            {messages.map((msg, i) => (
-              <div key={i} className={`message ${msg.role}`}>
-                {msg.role === 'companion' && <Icon name="heart" />}
-                <p>{msg.text}</p>
-              </div>
-            ))}
-          </div>
-          <div className="companion-input">
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && sendMessage()}
-              placeholder="How are you feeling…"
-            />
-            <button className="primary-action" onClick={sendMessage} disabled={!input.trim()}>
-              <Icon name="check" />
-            </button>
-            <button className="tertiary-action" onClick={() => setPhotoMode(true)} title="Upload photo">
-              <Icon name="users" />
-            </button>
-          </div>
-        </>
-      )}
+        <div className="companion-read">
+          <small>WHAT I SEE TODAY · {analysis.source === 'engine' ? 'FROM YOUR SENSORS' : 'SAMPLE DATA'}</small>
+          <strong>{MOOD_LABEL[analysis.mood]}</strong>
+          <ul>{analysis.drivers.slice(0, 3).map(d => <li key={d}>{d}</li>)}</ul>
+          <button className="tertiary-action" onClick={() => setShowData(s => !s)}>{showData ? 'Hide the numbers' : 'Show the numbers'}</button>
+          {showData && (
+            <div className="companion-findings">
+              <small>BODY</small>
+              {analysis.physical.map(f => <div key={f.key} className={sevClass(f.severity)}><span>{f.label}</span><b>{f.value}</b><i>norm {f.norm}</i></div>)}
+              <small>MIND AND CONNECTION</small>
+              {analysis.psychological.map(f => <div key={f.key} className={sevClass(f.severity)}><span>{f.label}</span><b>{f.value}</b><i>{f.delta == null ? f.norm : `norm ${f.norm}`}</i></div>)}
+            </div>
+          )}
+        </div>
+        <div className="companion-suggest">
+          <small>WITHIN REACH</small>
+          {analysis.suggestions.map(s => <button key={s.key} className="secondary-action" disabled={!s.local} onClick={() => s.local && openTool?.(s.local)}>{s.title}</button>)}
+        </div>
+      </aside>
+      <div className="companion-chat">
+        <VoiceBar voice={voice} compact hint="Just speak; your words are sent as a message. Say &quot;repeat&quot; to hear the last reply again." onRepeat={() => voice.say(messages[messages.length - 1]?.text ?? '')} />
+        <div className="companion-messages" aria-live="polite">
+          {messages.map((m, i) => <p key={i} className={m.role}>{m.text}</p>)}
+        </div>
+        <div className="companion-quick">{QUICK.map(q => <button key={q} onClick={() => send(q)}>{q}</button>)}</div>
+        <form className="companion-input" onSubmit={e => { e.preventDefault(); send(input) }}>
+          <input value={input} onChange={e => setInput(e.target.value)} placeholder="In your own words…" aria-label="Message to the companion" />
+          <button className="primary-action" type="submit" disabled={!input.trim()}>Send</button>
+          <button className="tertiary-action" type="button" onClick={finish} disabled={count === 0 || ended.current}>End session</button>
+        </form>
+        <p className="companion-privacy"><Icon name="shield" /> Runs on board, with no link to Earth. Only "companion session · mood · length" goes to your decision log.</p>
+      </div>
     </div>
   )
 }
 
-export interface Medication {
-  id: string; name: string; dosage: string; frequency: string; indication: string
-  adherence: number; sideEffects: string[]; warnings: string[]; daysRemaining: number
-}
-
-export function MedicationLog({ medications = [] }: { medications?: Medication[] }) {
-  const [selectedMed, setSelectedMed] = useState<string | null>(null)
-  const [logs, setLogs] = useState<Record<string, boolean>>({})
-
-  const defaultMeds: Medication[] = medications.length > 0 ? medications : [
-    { id: 'm1', name: 'Sleep Aid (Zaleplon)', dosage: '5 mg', frequency: 'As needed', indication: 'Sleep', adherence: 76, sideEffects: ['Grogginess'], warnings: ['No EVA in 8h after'], daysRemaining: 12 },
-    { id: 'm2', name: 'Anticoagulant', dosage: '5 mg', frequency: '2x daily', indication: 'Prevention', adherence: 100, sideEffects: ['Bruising'], warnings: ['CRITICAL: Suspend 24h before EVA'], daysRemaining: 28 },
-  ]
-
-  const selected = defaultMeds.find(m => m.id === selectedMed)
+// ---------------------------------------------------------------- medications
+export function MedicationLog({ plan, alerts, missionDay, onLog }: {
+  plan: MedicationPlan[]
+  alerts: MedAlert[]
+  missionDay: number
+  onLog?: (kind: 'taken' | 'skipped' | 'side_effect', med: Medication, detail?: string) => void
+}) {
+  const [record, setRecord] = useState<MedRecord>(loadMedRecord)
+  const [open, setOpen] = useState<string | null>(null)
+  const [effect, setEffect] = useState('')
+  const update = (next: MedRecord) => { setRecord(next); saveMedRecord(next) }
+  const todayOf = (id: string) => record.taken[id]?.[missionDay]
+  const mark = (med: Medication, v: 'taken' | 'skipped') => {
+    update({ ...record, taken: { ...record.taken, [med.id]: { ...(record.taken[med.id] ?? {}), [missionDay]: v } } })
+    onLog?.(v, med)
+  }
+  const addEffect = (med: Medication) => {
+    const e = effect.trim(); if (!e) return
+    update({ ...record, effects: { ...record.effects, [med.id]: [...(record.effects[med.id] ?? []), { day: missionDay, effect: e }] } })
+    setEffect(''); onLog?.('side_effect', med, e)
+  }
 
   return (
     <div className="medication-log">
-      {!selectedMed ? (
-        <>
-          <div className="meds-list">
-            {defaultMeds.map(med => (
-              <button key={med.id} className="med-item" onClick={() => setSelectedMed(med.id)}>
-                <strong>{med.name}</strong>
-                <small>{med.dosage} · {med.frequency}</small>
-                <span className="adherence">{med.adherence}%</span>
+      <div className="med-list">
+        {plan.map(({ med, status, note }) => {
+          const done = todayOf(med.id)
+          const cls = status.replace(' ', '-')
+          return (
+            <article key={med.id} className={`med-item ${cls} ${open === med.id ? 'open' : ''}`}>
+              <button className="med-head" onClick={() => setOpen(open === med.id ? null : med.id)} aria-expanded={open === med.id}>
+                <div><strong>{med.name} {med.dosage}</strong><small>{med.generic} · {med.indication}</small></div>
+                <span className={`med-status ${cls}`}>{status}</span>
+                <span className="med-adherence"><b>{adherenceOf(med, record)}%</b><small>adherence</small></span>
               </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <button className="back-button" onClick={() => setSelectedMed(null)}>
-            <Icon name="chevron" /> Back
-          </button>
-          {selected && (
-            <div className="med-detail">
-              <h3>{selected.name}</h3>
-              <p><strong>{selected.dosage}</strong> · {selected.frequency}</p>
-              <p className="indication">{selected.indication}</p>
-
-              {selected.warnings.some(w => w.includes('CRITICAL')) && (
-                <div className="warning-banner">
-                  <Icon name="alert" />
-                  <p>{selected.warnings.find(w => w.includes('CRITICAL'))}</p>
+              <p className="med-note">{note}</p>
+              {status !== 'suspended' && status !== 'not today' && (
+                <div className="med-actions">
+                  <button className={done === 'taken' ? 'primary-action' : 'secondary-action'} onClick={() => mark(med, 'taken')}><Icon name="check" /> {done === 'taken' ? 'Taken today' : 'Taken'}</button>
+                  <button className={done === 'skipped' ? 'primary-action' : 'secondary-action'} onClick={() => mark(med, 'skipped')}>{done === 'skipped' ? 'Skipped today' : 'Skipped'}</button>
                 </div>
               )}
-
-              <div className="med-actions">
-                <button className="primary-action" onClick={() => { setLogs(l => ({ ...l, [selected.id]: true })); alert('✓ Taken logged') }}>
-                  <Icon name="check" /> Taken
-                </button>
-                <button className="secondary-action" onClick={() => { setLogs(l => ({ ...l, [selected.id]: false })); alert('✗ Skipped logged') }}>
-                  Skipped
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+              {open === med.id && (
+                <div className="med-detail">
+                  <div><small>FREQUENCY</small><p>{med.frequency}</p></div>
+                  <div><small>RESTRICTIONS</small><ul>{med.restrictions.map(r => <li key={r} className={med.critical && r.includes('EVA') ? 'critical' : ''}>{r}</li>)}</ul></div>
+                  <div><small>KNOWN SIDE EFFECTS</small><p>{med.sideEffects.join(' · ')}</p></div>
+                  <div><small>STOCK</small><p>{med.stockDays} days{med.stockDays < 20 ? ' · resupply in next report' : ''}</p></div>
+                  <div className="med-effects">
+                    <small>SOMETHING YOU NOTICED</small>
+                    {(record.effects[med.id] ?? []).slice(-3).map((e, i) => <span key={i}>day {e.day}: {e.effect}</span>)}
+                    <form onSubmit={e => { e.preventDefault(); addEffect(med) }}>
+                      <input value={effect} onChange={e => setEffect(e.target.value)} placeholder="e.g. bruise on the forearm, groggy until 10:00" aria-label="Side effect" />
+                      <button className="secondary-action" type="submit" disabled={!effect.trim()}>Log for the CMO</button>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </article>
+          )
+        })}
+      </div>
+      <aside className="med-alerts">
+        <small>CROSSED WITH TODAY'S RECOMMENDATIONS</small>
+        {alerts.map((a, i) => <article key={i} className={`med-alert ${a.kind}`}><strong>{a.title}</strong><p>{a.text}</p></article>)}
+      </aside>
     </div>
   )
 }
+
