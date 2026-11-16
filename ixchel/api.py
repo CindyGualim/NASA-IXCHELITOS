@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from generador import Astronauta
 from monitor import MODELS, IxchelMonitor
 
 @asynccontextmanager
@@ -149,7 +150,6 @@ def _dia_valido(clave: str, t: int):
 @app.get("/demo/escenarios")
 def demo_escenarios():
     """Escenarios de demostración disponibles (sin simularlos todavía)."""
-    from generador import Astronauta
     out = []
     for clave, cfg in ESCENARIOS_DEMO.items():
         a = Astronauta(7, seed=cfg["semilla"], entorno=cfg["entorno"])
