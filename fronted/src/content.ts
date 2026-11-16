@@ -316,6 +316,13 @@ export const PROTOCOL_SENSOR_CHECKS: Record<string, SensorQuestion[]> = {
 
   luto: [
     {
+      trigger_channel: 'sleep_h',
+      trigger_threshold: 15,
+      question: 'Your ring shows shorter nights than usual since the news. There is no right way to sleep through this. Are the nights long, or do you wake early?',
+      follow_up: 'Both are part of grief. We can dim the cabin earlier, move your first task later, or just leave it be for now.',
+      options: ['Hard to fall asleep', 'I wake early and stay awake', 'Sleeping, but not resting', 'Sleep is about the same'],
+    },
+    {
       trigger_channel: 'steps',
       trigger_threshold: 25,
       question: 'Your Garmin shows you\'ve been less active than usual these past days. We\'re not measuring you — just checking in. How does moving around feel right now?',
@@ -331,7 +338,7 @@ export const PROTOCOL_SENSOR_CHECKS: Record<string, SensorQuestion[]> = {
     },
     {
       trigger_channel: 'hrv',
-      trigger_threshold: 15,
+      trigger_threshold: 10,
       question: 'Your HRV — a measure of how your body is recovering — is below your norm. That often goes along with stress or grief. How is your body feeling today?',
       options: ['Heavy or tense', 'OK physically', 'Hard to tell'],
     },
