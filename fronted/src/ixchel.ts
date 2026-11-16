@@ -1,6 +1,7 @@
 // Connection to the Ixchel engine (ixchel/api.py) and translation of its daily output into
 // what ARMOR shows. If the API is not running, every screen keeps its sample values.
 import { useEffect, useState } from 'react'
+import { ALERT_TEXT } from './content'
 
 export type StatusKind = 'normal' | 'attention' | 'critical' | 'empty' | 'model' | 'protocol'
 export type Dom = 'psico' | 'sueno' | 'fisico' | 'social'
@@ -13,11 +14,11 @@ export const SCENARIO_KEY: Record<string, string | null> = {
   'Nominal': 'nominal',
   'Cumulative fatigue': 'fatiga',
   'Grief support': 'duelo',
-  'Emergency': null,
+  'Emergency': 'nominal',      // an emergency happens inside a mission: it is reported to the engine as an event
 }
 
 // ---------------------------------------------------------------- engine types
-export interface EngineAlert { codigo: string; dominio: string; nivel: 'VERDE' | 'AMARILLO' | 'ROJO'; detalle: string }
+export interface EngineAlert { codigo: string; dominio: string; nivel: 'VERDE' | 'AMARILLO' | 'ROJO'; detalle: string; seguridad?: boolean; protocolo?: string | null }
 export interface EngineRec { tipo: string; accion: string; categoria: string; explicacion?: string }
 /** An active event; `dia` = days elapsed since it was reported (not the mission day). */
 export interface EngineEvent { tipo: string; dia: number; detalle?: Record<string, unknown> }
@@ -33,6 +34,8 @@ export interface EngineOutput {
   eventos_activos: EngineEvent[]
   recomendaciones: EngineRec[]
   sin_linea_base: string[]
+  seguridad_activa?: boolean
+  autoreporte?: { checkin_hoy: boolean; alertas: EngineAlert[]; protocolos: string[] }
   ml?: {
     riesgo_dominios: Record<string, { nivel: string; prob_atencion_o_peor: number }>
     nivel_ml: string
@@ -42,6 +45,8 @@ export interface EngineOutput {
 export interface DayPayload {
   escenario: { clave: string; titulo: string; entorno: string; astronauta: string; n_dias: number; eventos: { tipo: string; inicio: number }[] }
   dia: number
+  version?: number
+  aportado?: Record<string, unknown>
   fila: Record<string, number | boolean | string | null>
   base: Record<string, number | null>
   semana: Record<string, number | null>
@@ -54,14 +59,14 @@ export type LinkStatus = 'idle' | 'loading' | 'live' | 'offline'
 
 // ---------------------------------------------------------------- data hooks
 /** Day of the simulated mission (missionDay is 1-based in ARMOR, t is 0-based in the engine). */
-export function useIxchelDay(scenario: string, missionDay: number) {
+export function useIxchelDay(scenario: string, missionDay: number, version = 0) {
   const key = SCENARIO_KEY[scenario] ?? null
   const [data, setData] = useState<DayPayload | null>(null)
   const [status, setStatus] = useState<LinkStatus>('idle')
   useEffect(() => {
     if (!key) { setStatus('idle'); return }
     const ctrl = new AbortController()
-    setStatus(s => (s === 'offline' ? 'offline' : 'loading'))
+    setStatus(s => (s === 'offline' || s === 'live' ? s : 'loading'))   // a refresh keeps the link "live"
     const timer = window.setTimeout(() => {   // small pause so dragging the day slider does not flood the API
       fetch(`${API}/demo/${key}/dia/${missionDay - 1}`, { signal: ctrl.signal })
         .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -69,9 +74,87 @@ export function useIxchelDay(scenario: string, missionDay: number) {
         .catch(err => { if (err?.name !== 'AbortError') { setData(null); setStatus('offline') } })
     }, 120)
     return () => { window.clearTimeout(timer); ctrl.abort() }
-  }, [key, missionDay])
+  }, [key, missionDay, version])
   return { data: key ? data : null, status }
 }
+
+// ---------------------------------------------------------------- support layer (acompanamiento.py)
+export interface SupportAlert { codigo: string; dominio: string; nivel: 'VERDE' | 'AMARILLO' | 'ROJO'; detalle: string; accion?: string; protocolo?: string | null; seguridad?: boolean }
+export interface PlanItem { estado: string; formularios: string[]; cadencia: string; inmediato: boolean; seguridad: boolean }
+export interface CheckinResult {
+  dia: number
+  resultado: { puntaje: number; estres_vas: number; animo_motivacion: number | null }
+  alertas: SupportAlert[]
+  plan: PlanItem[]
+  seguridad_activa: boolean
+  protocolos: string[]
+  base_lista: boolean
+  base: { media: number; sd: number } | null
+  serie: { dia: number; compuesto: number; z: number | null; usuario: boolean }[]
+  confusores: string[]
+}
+export interface FormResult { resultado: Record<string, unknown> & { instrumento?: string; puntaje?: number | null; severidad?: string; positivo?: boolean; agudo?: boolean; nota_tiempo?: string }; alertas: SupportAlert[]; seguridad_activa: boolean; protocolos: string[] }
+export interface LogEntry { id: number; tipo: string; dia: number; hora: string; resumen: string; [k: string]: unknown }
+export interface AsyncReport {
+  mission_day: number; reason: string; engine_level: string
+  status_by_module_vs_baseline: Record<string, string>
+  sleep_hours_last_7_days: number[]; reflex_trend: string; safety_item_answer: string
+  astronaut_notes: string[]; countermeasures_used: string[]; eta_minutes: number
+}
+export interface SeriesDay {
+  dia: number; nivel: string
+  dominios: Record<Dom, number | null>; ml: Record<Dom, number | null>
+  alertas: { codigo: string; dominio: string; nivel: string }[]
+  x: Record<string, number | null>; radiacion_acum_msv: number | null; eventos: string[]
+}
+export interface MissionSeries { escenario: string; base: Record<string, number | null>; eventos: { tipo: string; inicio: number }[]; dias: SeriesDay[] }
+export interface SampleNight { fuente: string; epoca_s: number; modelo: string[]; experto: (string | null)[]; sueno_h_modelo: number; sueno_h_experto: number; eficiencia_modelo: number; fc_reposo: number | null }
+
+// Every successful write changes what the engine computes: listeners (the app) refresh their data.
+const listeners = new Set<() => void>()
+export function useEngineVersion() {
+  const [version, setVersion] = useState(0)
+  useEffect(() => {
+    const bump = () => setVersion(v => v + 1)
+    listeners.add(bump)
+    return () => { listeners.delete(bump) }
+  }, [])
+  return version
+}
+
+async function call<T>(path: string, body?: unknown): Promise<T> {
+  const r = await fetch(`${API}${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`)
+  const data = await r.json() as T
+  if (body !== undefined) listeners.forEach(fn => fn())
+  return data
+}
+
+/** Support-layer calls for one demo scenario; `t` is the 0-based mission day. */
+export function supportApi(key: string) {
+  const base = `/demo/${key}`
+  return {
+    checkin: (t: number, respuestas: Record<string, unknown>, sf1: number | null, estados: string[]) =>
+      call<CheckinResult>(`${base}/checkin`, { dia: t, respuestas, sf1, estados }),
+    form: (t: number, nombre: string, respuestas: Record<string, unknown>, rechazo = false) =>
+      call<FormResult>(`${base}/formulario`, { dia: t, nombre, respuestas, rechazo }),
+    decision: (t: number, d: { tarjeta: string; dominio: string; titulo: string; decision: string; contramedida?: string | null; motivo?: string | null; arm?: string | null }) =>
+      call<LogEntry>(`${base}/decision`, { dia: t, ...d }),
+    event: (t: number, tipo: string, nota?: string) => call<LogEntry>(`${base}/evento`, { dia: t, tipo, nota }),
+    protocolStep: (t: number, protocolo: string, paso: string, estado: string) => call<LogEntry>(`${base}/protocolo`, { dia: t, protocolo, paso, estado }),
+    getPlan: () => call<{ plan: Record<string, string> }>(`${base}/plan_seguridad`),
+    savePlan: (t: number, plan: Record<string, string>) => call<{ plan: Record<string, string> }>(`${base}/plan_seguridad`, { dia: t, plan }),
+    report: (t: number, nota?: string, motivo = 'routine') => call<AsyncReport>(`${base}/reporte`, { dia: t, nota, motivo }),
+    log: () => call<{ registro: LogEntry[] }>(`${base}/registro`),
+    series: () => call<MissionSeries>(`${base}/serie`),
+    reset: () => call<{ ok: boolean }>(`${base}/reiniciar`, {}),
+  }
+}
+export const sampleNight = () => call<SampleNight>('/sueno/noche_muestra')
+export const modelMetrics = () => call<Record<string, any>>('/modelos/metricas')
+
+/** Fire-and-forget logging: the UI never blocks on it, and works offline with sample data. */
+export function logQuietly(p: Promise<unknown>) { p.catch(() => undefined) }
 
 export function useScenarios() {
   const [list, setList] = useState<ScenarioInfo[]>([])
@@ -106,7 +189,7 @@ const VAR_TEXT: Record<string, { label: string; unit: string; dec: number }> = {
   cohesion: { label: 'Crew cohesion', unit: 'of 100', dec: 0 },
   msgs_criticos_tierra: { label: 'Critical messages from Earth', unit: 'per day', dec: 1 },
 }
-const ALERT_TITLE: Record<string, string> = {
+export const ALERT_TITLE: Record<string, string> = {
   FATIGA_CRONICA: 'Cumulative fatigue',
   COLAPSO_ALERTA_COGNITIVA: 'Attention drop',
   DISTRES_DEPRESIVO_ISOLACIONAL: 'Isolation distress',
@@ -120,8 +203,8 @@ const ALERT_TITLE: Record<string, string> = {
   ESCALAR_MEDICO_URGENTE: 'Urgent medical review',
   EVENTO_RADIACION: 'Radiation event',
   RADIACION_ACUMULADA: 'Accumulated radiation',
-  LIMITE_CO2_PPM: 'Cabin CO₂ above notice level',
-  LIMITE_RUIDO_DBA: 'Cabin noise above limit',
+  LIMITE_CO2_PPM: 'CO₂ above notice level',
+  LIMITE_RUIDO_DBA: 'Noise above limit',
   LIMITE_MASA_PCT: 'Body-mass loss',
   LIMITE_PERDIDA_OSEA_PCT: 'Bone-loss estimate',
   LIMITE_O2_PCT: 'Cabin oxygen out of range',
@@ -175,6 +258,11 @@ export interface TodayVM {
   delayMin: number
   phase: string
   griefDay: number | null
+  /** a safety answer today (SF1, ASQ, PHQ-9 item 9): always shown first */
+  safety: boolean
+  checkinToday: boolean
+  /** days since a reported emergency (0 = today), while its 72-hour window is open */
+  emergencyDay: number | null
 }
 
 function rulesLevel(out: EngineOutput, d: string) {
@@ -252,11 +340,13 @@ export function buildToday(p: DayPayload, missionDay: number): TodayVM {
   // one decision card per domain with rule alerts (the strongest, clinical rules before generic deviations)
   const rank = (a: EngineAlert) => (LEVEL[a.nivel] ?? 0) * 10 + (a.codigo === 'DESVIACION_PERSISTENTE' ? 0 : 1)
   const byDomain = new Map<string, EngineAlert[]>()
-  for (const a of out.alertas.filter(a => !isML(a))) byDomain.set(a.dominio, [...(byDomain.get(a.dominio) ?? []), a])
+  // safety alerts get their own banner (always first), never a regular decision card
+  const isSafety = (a: EngineAlert) => Boolean(a.seguridad) || a.dominio === 'seguridad' || a.dominio === 'evento'
+  for (const a of out.alertas.filter(a => !isML(a) && !isSafety(a))) byDomain.set(a.dominio, [...(byDomain.get(a.dominio) ?? []), a])
   const decisions: DecisionVM[] = [...byDomain.entries()]
     .map(([dom, list]) => {
       const top = [...list].sort((a, b) => rank(b) - rank(a))[0]
-      const title = ALERT_TITLE[top.codigo] ?? top.codigo.replace(/_/g, ' ').toLowerCase()
+      const title = ALERT_TITLE[top.codigo] ?? ALERT_TEXT[top.codigo]?.title ?? top.codigo.replace(/_/g, ' ').toLowerCase()
       const off = isHealth(dom) ? DOMAIN_VARS[dom].filter(k => (out.z[k] ?? 0) > 2.5).map(k => VAR_TEXT[k].label.replace(/^Your /, '').toLowerCase()) : []
       const text = isHealth(dom)
         ? `${off.length ? `Outside your personal range for several days: ${off.join(', ')}.` : domainDescription(dom, p)}${amb.co2_ppm > 3000 ? ' High cabin CO₂ may be contributing.' : ''}`
@@ -294,7 +384,13 @@ export function buildToday(p: DayPayload, missionDay: number): TodayVM {
     : decisions.length ? 'Cabin conditions need a check' : modelNotice ? 'One early model notice to watch' : 'No decisions pending'
 
   const grief = out.eventos_activos.find(e => e.tipo === 'luto')
+  const emergency = out.eventos_activos.find(e => e.tipo === 'emergencia')
+  const safety = Boolean(out.seguridad_activa) || out.alertas.some(isSafety)
+  if (safety) headline.splice(0, 2, 'You told us something', 'important. Support is here.')
   return {
+    safety,
+    checkinToday: Boolean(out.autoreporte?.checkin_hoy),
+    emergencyDay: emergency ? emergency.dia : null,
     headline, overallKind, overallLabel: { VERDE: 'Normal', AMARILLO: 'Attention', ROJO: 'Critical' }[out.nivel],
     overallNote, domains, context, decisions, modelNotice, delayMin: delay,
     phase: { Marte: 'Mars surface', Luna: 'Lunar surface', ISS: 'Low Earth orbit' }[p.escenario.entorno] ?? p.escenario.entorno,

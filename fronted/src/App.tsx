@@ -1,10 +1,19 @@
 import { createContext, lazy, Suspense, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from './components/Icon'
+import { StatusMark } from './components/StatusMark'
 import type { Zone } from './Body3D'
 
 // three.js only loads when "My body" opens, so the Today screen stays light
 const Body3D = lazy(() => import('./Body3D').then(m => ({ default: m.Body3D })))
-import { buildToday, careFor, reasonsFor, useIxchelDay, useScenarios, type DayPayload, type DecisionVM, type DomainVM, type LinkStatus, type ModelNoticeVM, type StatusKind, type TodayVM } from './ixchel'
+import { buildToday, careFor, logQuietly, reasonsFor, SCENARIO_KEY, supportApi, useEngineVersion, useIxchelDay, useScenarios, type DayPayload, type DecisionVM, type DomainVM, type LinkStatus, type ModelNoticeVM, type StatusKind, type TodayVM } from './ixchel'
+import { FORMS, GRIEF_PHASES } from './content'
+import { CareView } from './views/CareView'
+import { DailyCheckView, FormRunner } from './views/DailyCheckView'
+import { DecisionLogView } from './views/DecisionLogView'
+import { EnvironmentView } from './views/EnvironmentView'
+import { ModelMetrics } from './views/ModelMetrics'
+import { TimelineView } from './views/TimelineView'
+import type { ViewName, ViewProps } from './views/shared'
 
 // Live connection to the Ixchel engine, shared with the simulation bar.
 const EngineCtx = createContext<{ status: LinkStatus; today: TodayVM | null }>({ status: 'idle', today: null })
@@ -12,7 +21,7 @@ const EngineCtx = createContext<{ status: LinkStatus; today: TodayVM | null }>({
 type Scenario = 'Nominal' | 'Cumulative fatigue' | 'Grief support' | 'Emergency'
 type Decision = 'applied' | 'postponed' | 'discarded' | null
 type StepState = 'done' | 'postponed' | 'not-applicable' | null
-type View = 'Today' | 'Daily check' | 'My body' | 'How to read this'
+type View = ViewName
 type BodyRegion = 'head' | 'eyes' | 'neck' | 'torso' | 'arms' | 'legs'
 
 const navigation = [
@@ -56,27 +65,6 @@ const sampleCare = [
   { key: 'reorganizar_turnos', title: 'Reorganize shifts', duration: 'Next 24 h', tag: '', copy: 'Moves high-attention tasks away from your lowest-rest period.' },
 ]
 const DOMAIN_UPPER: Record<string, string> = { sueno: 'SLEEP', psico: 'MOOD', fisico: 'BODY', social: 'CONNECTION', ambiente: 'CABIN' }
-
-function StatusMark({ kind, size = 'md' }: { kind: StatusKind; size?: 'sm' | 'md' | 'lg' }) {
-  const labels: Record<StatusKind, string> = {
-    normal: 'Normal',
-    attention: 'Attention',
-    critical: 'Critical',
-    empty: 'No data yet',
-    model: 'Early model notice',
-    protocol: 'Active support',
-  }
-  return (
-    <span className={`status-mark ${kind} ${size}`} aria-label={labels[kind]}>
-      {kind === 'normal' && <Icon name="check" />}
-      {kind === 'attention' && <Icon name="alert" />}
-      {kind === 'critical' && <strong>!</strong>}
-      {kind === 'empty' && <span />}
-      {kind === 'model' && <Icon name="spark" />}
-      {kind === 'protocol' && <Icon name="heart" />}
-    </span>
-  )
-}
 
 function ContextIcon({ name }: { name: string }) {
   if (name === 'radiation') return <Icon name="radiation" />
@@ -123,7 +111,8 @@ function DomainCard({ title, kind, status, description, trend, values }: { title
 function App() {
   const [scenario, setScenarioRaw] = useState<Scenario>('Cumulative fatigue')
   const [missionDay, setMissionDay] = useState(87)
-  const { data, status } = useIxchelDay(scenario, missionDay)
+  const version = useEngineVersion()          // bumps after every write: everything re-reads the engine
+  const { data, status } = useIxchelDay(scenario, missionDay, version)
   const scenarios = useScenarios()
   const today = data ? buildToday(data, missionDay) : null
   const setScenario = (value: Scenario) => {
@@ -134,25 +123,42 @@ function App() {
   }
   return (
     <EngineCtx.Provider value={{ status, today }}>
-      <Screens scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} data={data} today={today} />
+      <Screens scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} data={data} today={today} version={version} />
     </EngineCtx.Provider>
   )
 }
 
-function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today }: {
+function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today, version }: {
   scenario: Scenario
   setScenario: (value: Scenario) => void
   missionDay: number
   setMissionDay: (value: number) => void
   data: DayPayload | null
   today: TodayVM | null
+  version: number
 }) {
   const decisionCards = today ? today.decisions : sampleDecisions
   const modelNotice = today ? today.modelNotice : sampleNotice
   const domainCards = today ? today.domains : sampleDomains
+  const { status } = useContext(EngineCtx)
+  // support layer: only when the engine answers and the scenario is simulated by the engine
+  const scenarioKey = status === 'offline' ? null : SCENARIO_KEY[scenario] ?? null
+  const api = scenarioKey ? supportApi(scenarioKey) : null
+  const t = missionDay - 1
   const [decisions, setDecisions] = useState<Record<string, Decision>>({})
-  const decisionOf = (id: string) => decisions[id] ?? null
-  const setDecisionFor = (id: string, value: Decision) => setDecisions(current => ({ ...current, [id]: value }))
+  const decisionOf = (id: string) => decisions[`${missionDay}:${id}`] ?? null
+  const setDecisionFor = (id: string, value: Decision, extra: { contramedida?: string; arm?: string; motivo?: string } = {}) => {
+    setDecisions(current => ({ ...current, [`${missionDay}:${id}`]: value }))
+    if (!api || !value) return
+    const card = decisionCards.find(c => c.id === id)
+    const domain = card?.domain ?? (id.startsWith('model:') ? id.slice(6) : 'sueno')
+    const first = value === 'applied' && data ? careFor(domain, data)[0] : undefined
+    // the engine's bandit learns from the countermeasure that was really applied (arm key)
+    logQuietly(api.decision(t, { tarjeta: id, dominio: domain, titulo: card?.title ?? modelNotice?.title ?? id, decision: value,
+      contramedida: extra.contramedida ?? first?.title, arm: extra.arm ?? first?.key, motivo: extra.motivo }))
+  }
+  // the engine says whether today's daily check is in (it survives reloads and API restarts)
+  const checkedToday = Boolean(today?.checkinToday)
   const [detailId, setDetailId] = useState<string | null>(null)
   const detailOpen = detailId !== null
   const setDetailOpen = (open: boolean) => setDetailId(open ? (decisionCards[0]?.id ?? null) : null)
@@ -162,11 +168,25 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
   const [dismissOpen, setDismissOpen] = useState(false)
   const [dismissReason, setDismissReason] = useState('')
   const [protocolPaused, setProtocolPaused] = useState(false)
-  const [protocolSteps, setProtocolSteps] = useState<StepState[]>([null, null, null, null])
+  const [protocolSteps, setProtocolSteps] = useState<Record<string, StepState>>({})
+  const [griefForm, setGriefForm] = useState(false)
   const [view, setView] = useState<View>('Today')
   const [postEmergency, setPostEmergency] = useState(false)
-  const [dailyAnswers, setDailyAnswers] = useState({ feeling: '', support: '' })
+  const [emergencyReported, setEmergencyReported] = useState(false)
   const [bodyRegion, setBodyRegion] = useState<BodyRegion>('torso')
+  const notify = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(''), 3600) }
+  const viewProps: ViewProps = {
+    scenarioKey, missionDay, delayMin: today?.delayMin ?? 12, setMissionDay, version,
+    goTo: (v: ViewName) => { setView(v); setDetailId(null) }, notify,
+  }
+  // GP2 phase for the grief protocol (sample data: day 4 = phase N2)
+  const griefDay = today ? today.griefDay : 4
+  const griefPhase = GRIEF_PHASES.find(p => griefDay != null && griefDay - 1 >= p.from && griefDay - 1 <= p.to) ?? GRIEF_PHASES[1]
+  const setStep = (index: number, state: StepState) => {
+    const key = `${griefPhase.id}-${index + 1}`
+    setProtocolSteps(current => ({ ...current, [key]: state }))
+    if (api && state) logQuietly(api.protocolStep(t, 'GP2', key, state))
+  }
 
   // Decision detail: a rule card ("sueno:FATIGA_CRONICA") or the model notice ("model:sueno")
   const detailIsModel = detailId?.startsWith('model:') ?? false
@@ -181,42 +201,47 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
     if (options[0]) setSelectedCare(options[0].title)
   }
 
+  // leaving the Emergency scenario closes the 72-hour window, so the sidebar and scenarios work again
+  useEffect(() => {
+    if (scenario !== 'Emergency') { setPostEmergency(false); setEmergencyReported(false) }
+  }, [scenario])
+
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light'
     localStorage.setItem('armor-theme', darkMode ? 'dark' : 'light')
   }, [darkMode])
 
-  const showPlanned = (label: string) => {
-    setNotice(`${label} will be available in the next prototype screen.`)
-    window.setTimeout(() => setNotice(''), 3200)
-  }
-
   const navigate = (label: string) => {
-    if (label === 'Today' || label === 'Daily check' || label === 'My body' || label === 'How to read this') {
-      setView(label as View)
-      setDetailOpen(false)
-      return
-    }
-    showPlanned(label)
+    setView(label as View)
+    setDetailOpen(false)
   }
 
   if (scenario === 'Emergency' && !postEmergency) {
-    return <EmergencyView onComplete={() => setPostEmergency(true)} onExit={() => setScenario('Cumulative fatigue')} onNotify={() => setNotice('Commander notification sent through the local mission channel.')} />
+    // the emergency is reported to the engine (event "emergencia"): it opens the 72-hour window,
+    // pauses baseline adaptation and adds the post-emergency protocol to the following days
+    const reportEmergency = (nota: string) => {
+      if (!api || emergencyReported) return
+      setEmergencyReported(true)
+      logQuietly(api.event(t, 'emergencia', nota))
+      logQuietly(api.report(t, 'Emergency reported on board', 'emergency'))
+    }
+    return <EmergencyView onComplete={() => { reportEmergency('Emergency steps completed'); setPostEmergency(true) }} onExit={() => setScenario('Cumulative fatigue')}
+      onNotify={() => { reportEmergency('Commander notified from emergency mode'); setNotice('Commander notified. An emergency report is on its way to Earth.') }} />
   }
 
-  if (postEmergency) {
+  if (postEmergency && view === 'Today' && !detailOpen) {
     return (
-      <StandardShell darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} activeItem="Today" onNavigate={navigate} title="72-Hour Window" code="POST-INCIDENT.MONITOR" center="RECOVERY OBSERVATION · HOUR 01 OF 72">
+      <StandardShell darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} activeItem="Today" onNavigate={navigate} title="72-Hour Window" code="POST-INCIDENT.MONITOR" center={`RECOVERY OBSERVATION · DAY ${(today?.emergencyDay ?? 0) + 1} OF 3 · ${today?.emergencyDay != null ? 'REPORTED TO IXCHEL' : 'LOCAL ONLY'}`}>
         <PostEmergencyView onClose={() => { setPostEmergency(false); setScenario('Cumulative fatigue'); setView('Today') }} />
       </StandardShell>
     )
   }
 
-  if (scenario === 'Grief support') {
+  if (scenario === 'Grief support' && view === 'Today' && !detailOpen) {
     return (
       <div className="armor-shell protocol-shell">
         <SystemBar darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} />
-        <Sidebar muted activeItem="Care" onNavigate={navigate} />
+        <Sidebar muted activeItem="Today" onNavigate={navigate} />
         <TopSimulation scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} />
         <main className="armor-main protocol-main" id="main">
           <div className="window-titlebar">
@@ -236,25 +261,37 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
           </section>
           <section className="protocol-content">
             <div className="protocol-checklist">
-              <div className="section-title-row"><div><p className="screen-kicker">TODAY'S SUPPORT</p><h2>Steps at your pace</h2></div><span className="pending-content">Content pending</span></div>
-              {[1, 2, 3, 4].map((step, index) => (
-                <article className="protocol-step" key={step}>
-                  <span className="protocol-step-number">{String(step).padStart(2, '0')}</span>
-                  <div><strong>Support step {step}</strong><p>Content pending · This step will be loaded from the approved care protocol.</p></div>
-                  <div className="step-states" aria-label={`Status for support step ${step}`}>
-                    <button className={protocolSteps[index] === 'done' ? 'active' : ''} onClick={() => setProtocolSteps(current => current.map((value, i) => i === index ? 'done' : value))}><Icon name="check" />Done</button>
-                    <button className={protocolSteps[index] === 'postponed' ? 'active' : ''} onClick={() => setProtocolSteps(current => current.map((value, i) => i === index ? 'postponed' : value))}><Icon name="clock" />Postponed</button>
-                    <button className={protocolSteps[index] === 'not-applicable' ? 'active' : ''} onClick={() => setProtocolSteps(current => current.map((value, i) => i === index ? 'not-applicable' : value))}>— Not applicable</button>
-                  </div>
-                </article>
-              ))}
+              <div className="section-title-row"><div><p className="screen-kicker">TODAY'S SUPPORT · PHASE {griefPhase.id} · {griefPhase.window.toUpperCase()}</p><h2>{griefPhase.goal}</h2></div><span className="pending-content">Protocol GP2 · proposal for clinical review</span></div>
+              {griefPhase.steps.map((text, index) => {
+                const state = protocolSteps[`${griefPhase.id}-${index + 1}`] ?? null
+                return (
+                  <article className="protocol-step" key={text}>
+                    <span className="protocol-step-number">{String(index + 1).padStart(2, '0')}</span>
+                    <div><strong>{text}</strong><p>{state === 'done' ? 'Done. Thank you.' : state === 'postponed' ? 'Postponed. It will come back tomorrow.' : state === 'not-applicable' ? 'Marked as not applicable.' : 'At your pace. You can skip it.'}</p></div>
+                    <div className="step-states" aria-label={`Status for support step ${index + 1}`}>
+                      <button className={state === 'done' ? 'active' : ''} onClick={() => setStep(index, 'done')}><Icon name="check" />Done</button>
+                      <button className={state === 'postponed' ? 'active' : ''} onClick={() => setStep(index, 'postponed')}><Icon name="clock" />Postponed</button>
+                      <button className={state === 'not-applicable' ? 'active' : ''} onClick={() => setStep(index, 'not-applicable')}>— Not applicable</button>
+                    </div>
+                  </article>
+                )
+              })}
+              <div className="grief-check-row">
+                <div><strong>One-minute grief check</strong><span>Follows how the grief is going. Acute grief is not a disorder.</span></div>
+                <button className="secondary-action" onClick={() => setGriefForm(open => !open)}>{griefForm ? 'Close' : 'Start grief check'}</button>
+              </div>
+              {griefForm && <FormRunner form={FORMS.duelo_diario} onClose={() => setGriefForm(false)} onSubmit={async (answers) => {
+                if (!api) throw new Error('Ixchel engine offline')
+                return api.form(t, 'duelo_diario', answers)
+              }} />}
             </div>
             <aside className="family-card">
               <span className="family-icon"><Icon name="users" /></span>
               <p className="screen-kicker">PERSONAL CONNECTION</p>
               <h2>Message your family</h2>
               <p>Your message will arrive in {today ? (today.delayMin < 1 ? 'less than a minute' : `${Math.round(today.delayMin)} minutes`) : '12 minutes'}. This delay is part of the space you share, not a barrier to it.</p>
-              <button className="primary-action" onClick={() => setNotice('Private message space opened.')}>Write</button>
+              <button className="primary-action" onClick={() => { if (api) logQuietly(api.event(t, 'family_message', 'Family message queued')); notify('Family message queued. It travels with the next link window.') }}>Write</button>
+              <button className="tertiary-action" onClick={() => setView('Care')}>Open Care</button>
             </aside>
           </section>
           <div className="protocol-reminder"><Icon name="clock" /><strong>Reminder:</strong> we will review this together on day 14.</div>
@@ -324,13 +361,13 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
               <section className="dismiss-panel">
                 <div><p className="screen-kicker">REASON REQUIRED</p><h2>Why are you dismissing this recommendation?</h2><p>Your reason becomes part of the decision log and helps preserve clinical context.</p></div>
                 <label>Reason<textarea value={dismissReason} onChange={event => setDismissReason(event.target.value)} rows={3} placeholder="Enter a brief reason…" required /></label>
-                <div><button className="tertiary-action" onClick={() => setDismissOpen(false)}>Cancel</button><button className="primary-action" disabled={!dismissReason.trim()} onClick={() => { setDecisionFor(detailKey, 'discarded'); setDismissOpen(false); setNotice('Recommendation dismissed and reason recorded.') }}>Record dismissal</button></div>
+                <div><button className="tertiary-action" onClick={() => setDismissOpen(false)}>Cancel</button><button className="primary-action" disabled={!dismissReason.trim()} onClick={() => { setDecisionFor(detailKey, 'discarded', { motivo: dismissReason }); setDismissOpen(false); setDismissReason(''); setNotice('Recommendation dismissed and reason recorded.') }}>Record dismissal</button></div>
               </section>
             )}
           </div>
           <div className="detail-decision-bar">
             <div><small>SELECTED COUNTERMEASURE</small><strong>{selectedCare}</strong></div>
-            <button className="primary-action" onClick={() => { setDecisionFor(detailKey, 'applied'); setNotice(`${selectedCare} applied.`) }}>Apply</button>
+            <button className="primary-action" onClick={() => { setDecisionFor(detailKey, 'applied', { contramedida: selectedCare, arm: detailCare.find(o => o.title === selectedCare)?.key }); setNotice(`${selectedCare} applied. Ixchel will learn from how you respond.`) }}>Apply</button>
             <button className="secondary-action" onClick={() => { setDecisionFor(detailKey, 'postponed'); setNotice('Decision postponed until tomorrow.') }}>Postpone until tomorrow</button>
             <button className="tertiary-action" onClick={() => setDismissOpen(true)}>Dismiss</button>
           </div>
@@ -344,7 +381,23 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
   if (view === 'Daily check') {
     return (
       <StandardShell darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} activeItem="Daily check" onNavigate={navigate} title="Daily Check" code="CHECKIN.30SEC" center="PRIVATE SELF-REPORT · CREW MEMBER 04">
-        <DailyCheck answers={dailyAnswers} setAnswers={setDailyAnswers} onSave={() => setNotice('Daily check saved privately.')} />
+        <DailyCheckView {...viewProps} safetyActive={Boolean(today?.safety)} checkedToday={checkedToday} />
+        {notice && <div className="toast" role="status"><Icon name="check" />{notice}</div>}
+      </StandardShell>
+    )
+  }
+
+  const SECTIONS: Partial<Record<View, { title: string; code: string; center: string; body: ReactNode }>> = {
+    Timeline: { title: 'Timeline', code: 'MISSION.HISTORY', center: `MISSION DAY ${missionDay} OF 180 · CREW MEMBER 04`, body: <TimelineView {...viewProps} /> },
+    Environment: { title: 'Environment', code: 'CABIN.CONTEXT', center: 'CABIN CONDITIONS · RULE OUT FIRST', body: <EnvironmentView {...viewProps} /> },
+    Care: { title: 'Care', code: 'SUPPORT.HUB', center: 'PRIVATE CARE SPACE · CREW MEMBER 04', body: <CareView {...viewProps} today={today} data={data} /> },
+    'Decision log': { title: 'Decision Log', code: 'RECORD.ASYNC', center: 'YOUR DECISIONS · REPORTS TO EARTH', body: <DecisionLogView {...viewProps} /> },
+  }
+  const section = SECTIONS[view]
+  if (section) {
+    return (
+      <StandardShell darkMode={darkMode} toggleTheme={() => setDarkMode(value => !value)} scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} activeItem={view} onNavigate={navigate} title={section.title} code={section.code} center={section.center}>
+        {section.body}
         {notice && <div className="toast" role="status"><Icon name="check" />{notice}</div>}
       </StandardShell>
     )
@@ -406,6 +459,32 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
 
         <section className="actions-section" aria-labelledby="actions-title">
           <div className="section-title-row"><div><p className="screen-kicker">ONE DECISION AT A TIME</p><h2 id="actions-title">What you can do today</h2></div><span className="action-count">{decisionCards.length + (modelNotice ? 1 : 0)} pending action{decisionCards.length + (modelNotice ? 1 : 0) === 1 ? '' : 's'}</span></div>
+
+          {today?.safety && <article className="decision-card critical safety-banner" onClick={() => setView('Daily check')}>
+            <div className="decision-icon"><StatusMark kind="critical" size="lg" /></div>
+            <div className="decision-content">
+              <span className="decision-type">SAFETY FIRST · PROTOCOL GP3</span>
+              <h3>You are not alone. Support is on its way.</h3>
+              <p>Your crew medical officer and the flight surgeon have been notified. A crewmate can be with you right now, and your safety plan is one tap away.</p>
+            </div>
+            <div className="decision-actions compact" onClick={event => event.stopPropagation()}>
+              <button className="primary-action" onClick={() => { if (api) logQuietly(api.event(t, 'peer_support_request', 'Asked a crewmate to stay with me')); notify('Your support crewmate has been called.') }}>Ask a crewmate now</button>
+              <button className="secondary-action" onClick={() => setView('Daily check')}>Open safety support</button>
+            </div>
+          </article>}
+
+          {!checkedToday && <article className="decision-card checkin-prompt" onClick={() => setView('Daily check')}>
+            <div className="decision-icon"><StatusMark kind="protocol" size="lg" /></div>
+            <div className="decision-content">
+              <span className="decision-type">YOUR VOICE · ABOUT ONE MINUTE</span>
+              <h3>How are you, really?</h3>
+              <p>Sensors cannot tell how something feels. Seven quick ratings and one safety question let Ixchel compare you with your own norm and offer the right support.</p>
+            </div>
+            <div className="decision-actions compact" onClick={event => event.stopPropagation()}>
+              <button className="primary-action" onClick={() => setView('Daily check')}>Start daily check</button>
+              <button className="tertiary-action" onClick={() => setView('Care')}>Go to Care</button>
+            </div>
+          </article>}
 
           {decisionCards.length === 0 && !modelNotice && <p className="domain-description">Nothing to decide today. Ixchel keeps comparing you with your personal norm.</p>}
 
@@ -542,31 +621,6 @@ function PostEmergencyView({ onClose }: { onClose: () => void }) {
   )
 }
 
-function DailyCheck({ answers, setAnswers, onSave }: { answers: { feeling: string; support: string }; setAnswers: (value: { feeling: string; support: string }) => void; onSave: () => void }) {
-  const feelingOptions = ['Good', 'So-so', 'Not good', 'Prefer not to say']
-  const supportOptions = ['Ergometer exercise', 'Talking with someone', 'Music', 'Time alone', 'Something else']
-  return (
-    <div className="daily-check-view">
-      <header className="compact-view-header"><div><p className="screen-kicker">PRIVATE · ABOUT 20 SECONDS</p><h1>Daily check</h1><p>Two short questions. Your words add context that sensors cannot measure.</p></div><span className="check-timer"><Icon name="clock" /> Under 30 sec</span></header>
-      <div className="check-progress"><i style={{ width: answers.feeling && answers.support ? '100%' : answers.feeling ? '50%' : '8%' }} /></div>
-      <section className="question-card">
-        <span className="question-number">01</span>
-        <div><p className="screen-kicker">HOW THIS FEELS TO YOU</p><h2>You have slept less and spoken less with your crew lately. How do you feel about that?</h2>
-          <div className="answer-options">{feelingOptions.map(option => <button key={option} className={answers.feeling === option ? 'selected' : ''} onClick={() => setAnswers({ ...answers, feeling: option })}>{answers.feeling === option && <Icon name="check" />}{option}</button>)}</div>
-          <p className="privacy-copy"><Icon name="shield" />“Prefer not to say” is always valid and is never treated as an alert.</p>
-        </div>
-      </section>
-      <section className="question-card">
-        <span className="question-number">02</span>
-        <div><p className="screen-kicker">WHAT HAS HELPED</p><h2>What has helped you feel better lately?</h2>
-          <div className="answer-options support">{supportOptions.map(option => <button key={option} className={answers.support === option ? 'selected' : ''} onClick={() => setAnswers({ ...answers, support: option })}>{answers.support === option && <Icon name="check" />}{option}</button>)}</div>
-        </div>
-      </section>
-      <div className="check-save"><div><strong>{answers.feeling && answers.support ? 'Ready to save' : 'Answer both questions to continue'}</strong><span>Your answers stay in the private medical record.</span></div><button className="primary-action" disabled={!answers.feeling || !answers.support} onClick={onSave}>Save</button></div>
-    </div>
-  )
-}
-
 function GuideView() {
   const states: { title: string; kind?: StatusKind; copy: string; action?: boolean }[] = [
     { title: 'Normal', kind: 'normal', copy: 'Within your personal range.' },
@@ -588,7 +642,8 @@ function GuideView() {
       <section><div className="section-title-row"><div><p className="screen-kicker">SYSTEM LANGUAGE</p><h2>Seven states, always shown with shape and words</h2></div></div>
         <div className="state-library">{states.map(state => <article key={state.title}>{state.action ? <span className="action-sample"><Icon name="check" /></span> : <StatusMark kind={state.kind!} size="lg" />}<div><h3>{state.title}</h3><p>{state.copy}</p></div></article>)}</div>
       </section>
-      <section className="truth-block"><div className="truth-icon"><Icon name="shield" /></div><div><p className="screen-kicker">HONEST LIMITS</p><h2>What is real and what is simulated</h2><p><strong>Real in this prototype:</strong> the decision logic, state language, personal-baseline approach, human control, and interaction flows.</p><p><strong>Simulated here:</strong> crew readings, environmental values, mission events, model notices, and protocol content. ARMOR is not a medical device or an emergency operating system.</p></div></section>
+      <section className="truth-block"><div className="truth-icon"><Icon name="shield" /></div><div><p className="screen-kicker">HONEST LIMITS</p><h2>What is real and what is simulated</h2><p><strong>Real in this prototype:</strong> the Ixchel engine and its rules, the learned models, the sleep model (validated on real people), real ISS cabin CO₂, temperature, humidity and radiation (NASA OSDR), the self-report scoring and safety flow from the team’s knowledge base, and every decision you record.</p><p><strong>Simulated here:</strong> the astronaut’s daily physiological and psychological readings, and the earlier check-in history. Protocols and questionnaire thresholds are proposals pending clinical review. ARMOR is not a medical device or an emergency operating system.</p></div></section>
+      <ModelMetrics />
     </div>
   )
 }

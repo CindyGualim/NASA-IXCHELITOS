@@ -164,8 +164,52 @@ retardo con la Tierra), semáforo general, los 4 dominios con su tendencia de 7 
 de decisión (una por dominio con alertas de reglas), el aviso temprano del modelo, el detalle
 "Why I am telling you this" (semana vs. su normal y el camino del árbol), las contramedidas
 (primero la que eligió el motor), el día del protocolo de duelo y el mapa del cuerpo (cabeza,
-torso, piernas). Siguen siendo de ejemplo: Daily check, Emergency, pasos del protocolo de duelo,
-ojos y cuello del mapa del cuerpo, y las secciones Timeline, Environment, Care y Decision log.
+torso, brazos, piernas).
+
+### Todo es dinámico (`mision_viva.py`)
+Cada misión de demo es una **misión viva**: el motor la procesa día por día y la **recalcula** cuando la
+persona hace algo en la web. Se guarda una copia del motor cada 5 días y se rehace desde la más cercana
+(≈50 ms por día), así que un cambio en el día 87 se ve al instante y la misión completa en pocos segundos.
+- **Check-in:** su estrés entra al motor ese día; las alertas del autorreporte (R01–R26) se suman al día.
+- **Seguridad** (SF1, ASQ, PHQ-9 ítem 9): sube el semáforo a ROJO, va primero en las alertas y en Today.
+- **Cuestionario del equipo:** su cohesión entra al motor.
+- **Eventos** (emergencia, pérdida, herida…): entran con `report_event`; por ejemplo, la emergencia
+  abre la ventana de 72 h y genera `POST_EMERGENCIA` en los días siguientes.
+- **Decisiones:** el bandido del motor aprende de la contramedida que de verdad se aplicó; si se pospone
+  o descarta, ese día no se aprende nada.
+- **Persistencia:** lo aportado se guarda en `ixchel/sesiones/` (fuera de git) y se vuelve a aplicar al
+  reiniciar la API. `POST /demo/{escenario}/reiniciar` (botón en Decision log) vuelve a la misión original.
+- La web se refresca sola después de cada acción (cada escritura sube la versión del motor).
+
+### Acompañamiento psicológico (`acompanamiento.py`, conectado a todo ARMOR)
+Une el motor, la capa de autorreporte (`autoreporte.py` + base de conocimiento) y un registro en memoria
+por escenario. Endpoints (todos bajo `/demo/{escenario}`):
+```
+POST /checkin          check-in CK1–CK8 + ítem de seguridad SF1 + selector de estado ST01–ST11
+                       -> puntaje, alertas R01–R26, formularios propuestos, seguridad_activa
+POST /formulario       PHQ-4, PHQ-9, GAD-7, WHO-5, ASQ, duelo diario, equipo… (puntuación + reglas)
+POST /decision         aplicar / posponer / descartar una contramedida (con motivo)
+POST /evento           pedir compañero, conferencia, mensaje a la familia, autocuidado…
+POST /protocolo        marcar un paso del protocolo (p. ej. GP2 de duelo)
+GET|POST /plan_seguridad   plan de seguridad escrito con las palabras de la persona
+POST /reporte          reporte asíncrono para Tierra (campos de alerts.async_report de la base)
+GET  /registro         todo lo anterior, en orden
+GET  /serie            la misión completa, una fila por día (Timeline y Environment)
+GET  /sueno/noche_muestra  hipnograma de una noche real (modelo vs. experto)
+```
+Para que las tendencias del autorreporte (R01, R04, R08, R11) tengan historia, los check-ins de
+los 35 días previos se reconstruyen a partir del simulador (estrés, sueño, PVT); los que contesta la
+persona los reemplazan. La web lo indica como "simulated history".
+
+Módulos de ARMOR que lo usan: **Daily check** (check-in, seguridad, selector y cuestionarios en
+línea; con seguridad positiva abre la pantalla de apoyo GP3 y manda un reporte), **Care** (respiración
+guiada, anclaje 5-4-3-2-1, diario privado, contramedidas del día, hablar con alguien con el retardo,
+plan de seguridad, sesión semanal GP6), **Timeline** (misión completa e hipnograma real),
+**Environment** (cabina contra límites y "descartar primero el ambiente"), **Decision log** (registro y
+reporte a Tierra), protocolo de duelo GP2 por fase y **How to read this** (métricas de los modelos).
+Sigue siendo solo de interfaz el escenario Emergency. Los cuestionarios estándar usan su versión
+original en inglés (PHQ-4/9, GAD-7, WHO-5 de uso libre; ASQ del NIMH, dominio público); los ítems
+propios del equipo están traducidos sin validar y todos los protocolos son propuesta para revisión clínica.
 
 ## Autorreporte: lo que el astronauta cuenta (nuevo)
 

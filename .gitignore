@@ -3,6 +3,9 @@ data/raw/
 # Dataset simulado intermedio (se regenera con ixchel/entrenar_riesgo.py)
 models/dataset_riesgo.csv.gz
 
+# Lo que aporta cada persona en la demo (check-ins, decisiones…): datos privados, no van al repo
+ixchel/sesiones/
+
 # Python
 __pycache__/
 *.pyc

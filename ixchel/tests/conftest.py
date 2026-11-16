@@ -1,8 +1,13 @@
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
+
+# las sesiones de la demo se guardan en disco: en las pruebas, en una carpeta temporal
+os.environ.setdefault("IXCHEL_SESIONES", tempfile.mkdtemp(prefix="ixchel_sesiones_"))
 
 IXCHEL = Path(__file__).resolve().parent.parent
 REPO = IXCHEL.parent

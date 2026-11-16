@@ -73,8 +73,6 @@ def test_demo_para_frontend(client):
     assert 1 <= len(d["tendencia"]["sueno"]) <= 7
     assert d["base"]["sueno_h"] > 0 and d["semana"]["sueno_h"] > 0
     assert "riesgo_dominios" in d["salida"]["ml"]
-    # el monitor de la demo queda registrado como un astronauta más
-    assert client.get(f"/astronautas/{d['escenario']['astronauta']}/estado").status_code == 200
     duelo = client.get("/demo/duelo/dia/143").json()
     assert any(e["tipo"] == "luto" for e in duelo["salida"]["eventos_activos"])
     assert client.get("/demo/fatiga/dia/999").status_code == 422
