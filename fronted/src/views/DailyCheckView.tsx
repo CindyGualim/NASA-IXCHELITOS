@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Icon } from '../components/Icon'
 import { StatusMark } from '../components/StatusMark'
-import { ALERT_TEXT, CHECKIN, FORMS, PROTOCOL_NAME, SAFETY_ITEM, SAFETY_STEPS, STATES, formsFromPlan, type FormDef } from '../content'
+import { ALERT_TEXT, CHECKIN, FORMS, PROTOCOL_NAME, SAFETY_ITEM, SAFETY_STEPS, SENSOR_CHANNELS, STATES, formsFromPlan, getMockSensorAnomalies, getSensorQuestions, type FormDef, type SensorAnomaly, type SensorQuestion } from '../content'
 import { supportApi, logQuietly, type CheckinResult, type FormResult, type SupportAlert } from '../ixchel'
 import { BreathingGuide } from './SupportTools'
 import { DOMAIN_LABEL, delayText, fmt, type ViewProps } from './shared'
@@ -112,6 +112,90 @@ export function SafetySupport({ acute, delayMin, onAsq, onPlan, onPeer }: { acut
       </div>
       <BreathingGuide compact />
       <p className="support-note">Protocol GP3 is a proposal pending clinical review. ARMOR detects, notifies and guides; people decide.</p>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------- sensor context check (before the check-in, when a protocol is active)
+// Shows caring questions generated from real sensor anomalies detected by Garmin/ring/suit.
+function SensorContextCheck({ protocol, missionDay, onAnswered }: { protocol: string; missionDay: number; onAnswered: () => void }) {
+  const anomalies: SensorAnomaly[] = getMockSensorAnomalies(protocol, missionDay)
+  const questions: SensorQuestion[] = getSensorQuestions(protocol, anomalies)
+  const [step, setStep] = useState(0)
+  const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [showFollowUp, setShowFollowUp] = useState<Record<number, boolean>>({})
+
+  if (questions.length === 0) return null
+
+  const current = questions[step]
+  const isLast = step === questions.length - 1
+  const answered = answers[step] !== undefined
+
+  // The relevant anomaly for the current question
+  const anom = anomalies.find(a => a.channel === current.trigger_channel)
+  const channelLabel = SENSOR_CHANNELS[current.trigger_channel]?.label ?? current.trigger_channel
+  const isBelow = anom && anom.delta_pct < 0
+  const changeLabel = anom ? `${isBelow ? '↓' : '↑'} ${Math.abs(Math.round(anom.delta_pct))}% vs. your norm` : ''
+
+  const choose = (option: string) => {
+    setAnswers(a => ({ ...a, [step]: option }))
+    if (current.follow_up && option !== 'Prefer not to say' && option !== questions[step].options[0]) {
+      setShowFollowUp(s => ({ ...s, [step]: true }))
+    }
+  }
+
+  return (
+    <section className="sensor-context-check">
+      <div className="sensor-check-header">
+        <div className="sensor-source">
+          <Icon name="pulse" />
+          <div>
+            <span className="screen-kicker">SENSOR CHECK · {step + 1} OF {questions.length}</span>
+            <strong>{channelLabel}</strong>
+            {anom && <span className={isBelow ? 'sensor-delta below' : 'sensor-delta above'}>{changeLabel}</span>}
+          </div>
+        </div>
+        <div className="sensor-progress">
+          {questions.map((_, i) => <span key={i} className={i < step ? 'done' : i === step ? 'active' : ''} />)}
+        </div>
+      </div>
+
+      <p className="sensor-question">{current.question}</p>
+
+      {showFollowUp[step] && current.follow_up && (
+        <p className="sensor-follow-up"><Icon name="heart" /> {current.follow_up}</p>
+      )}
+
+      <div className="sensor-options">
+        {[...current.options, 'Prefer not to say'].map(opt => (
+          <button
+            key={opt}
+            className={answers[step] === opt ? 'selected' : ''}
+            onClick={() => choose(opt)}
+          >
+            {answers[step] === opt && <Icon name="check" />}
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      {answered && (
+        <div className="sensor-nav">
+          {isLast ? (
+            <button className="primary-action" onClick={onAnswered}>
+              Continue to daily check <Icon name="chevron" />
+            </button>
+          ) : (
+            <button className="secondary-action" onClick={() => setStep(s => s + 1)}>
+              Next question <Icon name="chevron" />
+            </button>
+          )}
+        </div>
+      )}
+
+      <p className="sensor-note">
+        <Icon name="shield" /> Your answers are recorded in your private health log. They help Ixchel understand whether a change in your numbers has an emotional cause or a physical one.
+      </p>
     </section>
   )
 }
