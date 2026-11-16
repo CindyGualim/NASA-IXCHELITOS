@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { StatusMark } from '../components/StatusMark'
+import { onOpenCompanion, takeOpenRequest } from '../companionStore'
 import { MOOD_LABEL, medicationAlerts, medicationPlan, runAnalysis, situationOf } from '../care'
 import { SAFETY_PLAN, SELF_CARE } from '../content'
 import { careFor, logQuietly, supportApi, type DayPayload, type TodayVM } from '../ixchel'
@@ -17,7 +18,9 @@ export function CareView({ scenarioKey, scenario, missionDay, delayMin, goTo, no
   const analysis = useMemo(() => runAnalysis(data, today, situation), [data, today, situation])
   const meds = useMemo(() => medicationPlan(situation, today), [situation, today])
   const medAlerts = useMemo(() => medicationAlerts(meds, today, situation, data), [meds, today, situation, data])
-  const [tool, setTool] = useState<string>(situation === 'emergency' ? 'grounding' : situation === 'nominal' ? 'breathing' : 'companion')
+  const [tool, setTool] = useState<string>(() => takeOpenRequest() || situation === 'fatigue' || situation === 'grief' ? 'companion' : situation === 'emergency' ? 'grounding' : 'breathing')
+  // a tap on the floating companion while Care is already open
+  useEffect(() => onOpenCompanion(() => { takeOpenRequest(); setTool('companion') }), [])
   const [plan, setPlan] = useState<Record<string, string>>({})
   const [planSaved, setPlanSaved] = useState(false)
   const [applied, setApplied] = useState<Record<string, string>>({})

@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { MOOD_LABEL, adherenceOf, loadMedRecord, reply, saveMedRecord, type Analysis, type MedAlert, type MedRecord, type Medication, type MedicationPlan, type Mood, type Severity } from '../care'
 import { VoiceBar } from '../components/VoiceBar'
-import { commandOf, useVoice } from '../voice'
+import { TalkingPhoto, detectFace, shrinkPhoto, type Photo } from '../components/TalkingPhoto'
+import { companion, useCompanion } from '../companionStore'
+import { commandOf, mime, useVoice } from '../voice'
 
 const PHASES = [
   { label: 'Inhale', seconds: 4 },
@@ -93,10 +95,7 @@ export function Journal() {
 // ---------------------------------------------------------------- AI companion
 interface CompanionMessage { role: 'user' | 'companion'; text: string }
 const QUICK = ['I am tired', 'I feel low', 'I am worried', 'I feel alone', 'I am okay']
-const PHOTO_KEY = 'armor-companion-photo'
-
-type FaceBox = { boundingBox: { x: number; y: number; width: number; height: number } }
-type FaceDetectorCtor = new (opts?: { fastMode?: boolean; maxDetectedFaces?: number }) => { detect: (img: HTMLImageElement) => Promise<FaceBox[]> }
+const HELLO = 'There you are. Now you can see me while we talk. How is today going?'
 
 export function AICompanion({ analysis, missionDay, voiceDefault = false, onExchange, onEnd, openTool }: {
   analysis: Analysis
@@ -109,9 +108,17 @@ export function AICompanion({ analysis, missionDay, voiceDefault = false, onExch
   const voice = useVoice(voiceDefault)
   const [messages, setMessages] = useState<CompanionMessage[]>([{ role: 'companion', text: analysis.opening }])
   const [input, setInput] = useState('')
-  const [photo, setPhoto] = useState<{ url: string; focus: string } | null>(() => {
-    try { return JSON.parse(localStorage.getItem(PHOTO_KEY) ?? 'null') } catch { return null }
-  })
+  // the photo lives in a shared store: it floats as a bubble over the whole app
+  const { photo, speaks: photoVoice } = useCompanion()
+  /**
+   * Says a companion line: aloud when voice or the photo's voice is on, otherwise the face mouths it.
+   * Lines queue up, so answering never cuts off what the companion is still saying.
+   */
+  const talk = (text: string) => {
+    const { photo: p, speaks } = companion.get()
+    if (voice.enabled) voice.say(text, undefined, false, true)
+    else if (p?.face) { if (speaks) voice.say(text, undefined, true, true); else mime(text, { queue: true }) }
+  }
   const [showData, setShowData] = useState(false)
   const [count, setCount] = useState(0)
   const exchanges = useRef(0)
@@ -138,39 +145,36 @@ export function AICompanion({ analysis, missionDay, voiceDefault = false, onExch
     setInput('')
     onExchange?.(t, analysis.mood)
     const answer = reply(t, analysis, turn)
-    window.setTimeout(() => { setMessages(m => [...m, { role: 'companion', text: answer }]); voice.say(answer) }, 450)
+    window.setTimeout(() => { setMessages(m => [...m, { role: 'companion', text: answer }]); talk(answer) }, 450)
   }
   // hands-free: the opening line is read aloud and whatever is said becomes the message
-  useEffect(() => { voice.say(analysis.opening) }, [analysis.opening, voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { talk(analysis.opening) }, [analysis.opening, voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    voice.listen(text => { if (commandOf(text) === 'repeat') voice.say(messagesRef.current[messagesRef.current.length - 1]?.text ?? ''); else send(text) })
+    voice.listen(text => { if (commandOf(text) === 'repeat') talk(messagesRef.current[messagesRef.current.length - 1]?.text ?? ''); else send(text) })
     return voice.stopListening
   }, [voice.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
   const messagesRef = useRef(messages)
   messagesRef.current = messages
+  // always show the newest message
+  const list = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = list.current
+    if (!el) return
+    requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }))
+  }, [messages])
 
-  const onPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const sayHello = () => { setMessages(m => [...m, { role: 'companion', text: HELLO }]); talk(HELLO) }
+  const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = async ev => {
-      const url = ev.target?.result as string
-      let focus = 'center 30%'
-      const Detector = (window as unknown as { FaceDetector?: FaceDetectorCtor }).FaceDetector
-      if (Detector) {
-        try {
-          const img = new Image(); img.src = url
-          await new Promise(res => { img.onload = res })
-          const [face] = await new Detector({ fastMode: true, maxDetectedFaces: 1 }).detect(img)
-          if (face) { const b = face.boundingBox; focus = `${((b.x + b.width / 2) / img.naturalWidth * 100).toFixed(0)}% ${((b.y + b.height / 2) / img.naturalHeight * 100).toFixed(0)}%` }
-        } catch { /* detector unavailable: keep the default framing */ }
-      }
-      const next = { url, focus }
-      setPhoto(next)
-      try { localStorage.setItem(PHOTO_KEY, JSON.stringify(next)) } catch { /* too large for storage: kept for this session */ }
-      setMessages(m => [...m, { role: 'companion', text: 'I have them here with us now. When the day gets long, this face is a good place to look. Want to tell me who they are?' }])
-    }
-    reader.readAsDataURL(file)
+    try {
+      const url = await shrinkPhoto(file)
+      const face = await detectFace(url)   // when the browser can find the face, no tapping is needed
+      const next: Photo = { url, face: face ?? undefined }
+      companion.setPhoto(next)
+      if (face) sayHello()
+    } catch { setMessages(m => [...m, { role: 'companion', text: 'I could not open that picture. Try another photo (JPG or PNG).' }]) }
   }
 
   const sevClass = (s: Severity) => (s === 'high' ? 'high' : s === 'watch' ? 'watch' : '')
@@ -178,10 +182,17 @@ export function AICompanion({ analysis, missionDay, voiceDefault = false, onExch
     <div className="companion">
       <aside className="companion-side">
         <div className="companion-anchor">
-          {photo
-            ? <img src={photo.url} alt="Your anchor" style={{ objectPosition: photo.focus }} />
-            : <label className="companion-photo-empty"><input type="file" accept="image/*" onChange={onPhoto} /><span>Add a photo</span><small>you, or someone from home</small></label>}
-          {photo && <label className="companion-photo-change"><input type="file" accept="image/*" onChange={onPhoto} />Change photo</label>}
+          {!photo && <label className="companion-photo-empty"><input type="file" accept="image/*" onChange={onPhoto} /><span>Add a photo</span><small>it comes alive and talks with you</small></label>}
+          {/* marking the face happens here, big; once it is marked the face floats as a bubble */}
+          {photo && !photo.face && <TalkingPhoto photo={photo} adjustable={false} onFace={face => companion.setPhoto({ ...photo, face })} onReady={sayHello} />}
+          {photo?.face && <p className="companion-photo-floating"><span aria-hidden="true" />Your companion is floating on screen. Drag it anywhere; tap it to come back here.</p>}
+          {photo && (
+            <div className="companion-photo-actions">
+              <label className="companion-photo-change"><input type="file" accept="image/*" onChange={onPhoto} />Change photo</label>
+              {photo.face && <button type="button" className="companion-photo-change" onClick={() => companion.setPhoto({ ...photo, face: undefined })}>Adjust face</button>}
+              {photo.face && <button type="button" className="companion-photo-change" onClick={() => companion.setSpeaks(!photoVoice)}>{photoVoice ? 'Mute' : 'Let it speak'}</button>}
+            </div>
+          )}
         </div>
         <div className="companion-read">
           <small>WHAT I SEE TODAY · {analysis.source === 'engine' ? 'FROM YOUR SENSORS' : 'SAMPLE DATA'}</small>
@@ -204,7 +215,7 @@ export function AICompanion({ analysis, missionDay, voiceDefault = false, onExch
       </aside>
       <div className="companion-chat">
         <VoiceBar voice={voice} compact hint="Just speak; your words are sent as a message. Say &quot;repeat&quot; to hear the last reply again." onRepeat={() => voice.say(messages[messages.length - 1]?.text ?? '')} />
-        <div className="companion-messages" aria-live="polite">
+        <div className="companion-messages" aria-live="polite" ref={list}>
           {messages.map((m, i) => <p key={i} className={m.role}>{m.text}</p>)}
         </div>
         <div className="companion-quick">{QUICK.map(q => <button key={q} onClick={() => send(q)}>{q}</button>)}</div>
