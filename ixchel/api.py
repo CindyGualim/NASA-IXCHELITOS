@@ -1,5 +1,6 @@
 """API REST local para el motor Ixchel + modelos aprendidos. Ejecutar: uvicorn api:app --reload"""
 import json
+import os
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,8 +21,12 @@ async def _arranque(_app):
 
 
 app = FastAPI(title="Ixchel - monitoreo de salud de astronautas (offline)", lifespan=_arranque)
-# El frontend (fronted/, Vite) corre en otro puerto de la misma máquina: se permite solo localhost.
-app.add_middleware(CORSMiddleware, allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+# El frontend (fronted/, Vite) corre en localhost en desarrollo y en Vercel en producción.
+# Se pueden añadir orígenes con la variable de entorno CORS_ORIGINS (separados por comas).
+_EXTRA = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware,
+                   allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://[\w.-]+\.(vercel\.app|tmp\.now)",
+                   allow_origins=_EXTRA,
                    allow_methods=["*"], allow_headers=["*"])
 MONITORES: Dict[str, IxchelMonitor] = {}   # en memoria (para producir: guardar en disco cifrado)
 ULTIMO: Dict[str, dict] = {}

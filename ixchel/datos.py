@@ -14,6 +14,15 @@ import numpy as np
 import pandas as pd
 
 RAW = Path(__file__).resolve().parent.parent / "data" / "raw"
+# Copia derivada (pequeña) de las tablas de ambiente que usa el generador. Permite ejecutar la API en un
+# servidor sin descargar data/raw (p. ej. Render). Se regenera con scripts/export_derivado.py.
+DERIVADO = Path(__file__).resolve().parent.parent / "data" / "derivado" / "ambiente_iss.json"
+
+
+@lru_cache(maxsize=1)
+def _derivado():
+    import json
+    return json.loads(DERIVADO.read_text(encoding="utf-8")) if DERIVADO.exists() else None
 
 # Etapas BIDSleep: 0 Wake, 1 N1, 2 N2, 3 N3, 4 REM, 5 Unknown -> 4 clases del monitor
 ETAPA_4 = {0: 0, 1: 1, 2: 1, 3: 2, 4: 3}
@@ -45,6 +54,8 @@ def cabina_diaria():
         d["mision"] = f.name.split("_")[0]
         partes.append(d.drop(columns="n"))
     if not partes:
+        if _derivado():
+            d = pd.DataFrame(_derivado()["cabina_diaria"]); d["fecha"] = pd.to_datetime(d["fecha"]); return d
         raise FileNotFoundError("Sin telemetría. Ejecuta: python -I scripts/download_data.py eda")
     return pd.concat(partes, ignore_index=True).dropna()
 
@@ -57,13 +68,17 @@ def radiacion_diaria():
         d = pd.read_csv(f, parse_dates=["date"])
         d["mision"] = f.name.split("_")[0]
         partes.append(d)
+    if not partes and _derivado():
+        d = pd.DataFrame(_derivado()["radiacion_diaria"]); d["date"] = pd.to_datetime(d["date"]); return d
     return pd.concat(partes, ignore_index=True)
 
 
 @lru_cache(maxsize=1)
 def perfiles_radiacion():
     """Tasa media de dosis absorbida por entorno (RadLab, jun 2024) y su razón respecto a la ISS."""
-    f = next((RAW / "radiacion" / "radlab").glob("dose_rate_*.csv"))
+    f = next((RAW / "radiacion" / "radlab").glob("dose_rate_*.csv"), None)
+    if f is None and _derivado():
+        return _derivado()["perfiles_radiacion"]
     d = pd.read_csv(f)
     media = d.groupby("instrument_id")["absorbed_dose_rate"].median()
     iss = media[["DosTel1", "DosTel2"]].mean()
