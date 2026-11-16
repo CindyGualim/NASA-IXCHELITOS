@@ -505,7 +505,16 @@ body, .armor-shell { background: var(--page-gradient); }
 .companion-photo-empty { width: 128px; height: 128px; display: grid; place-content: center; text-align: center; border: 2px dashed var(--moss); border-radius: 50%; color: var(--blue); cursor: pointer; }
 .companion-photo-empty span { font: 700 13px 'Space Grotesk'; }.companion-photo-empty small { color: var(--cafe); font-size: 9px; }
 .companion-photo-empty input, .companion-photo-change input { display: none; }
-.companion-photo-change { color: var(--teal); font-size: 10px; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.companion-photo-change { color: var(--teal); font-size: 10px; font-weight: 800; text-decoration: underline; cursor: pointer; background: none; border: 0; padding: 0; font-family: inherit; }
+.companion-photo-actions { display: flex; gap: 12px; justify-content: center; }
+.talking-photo { position: relative; max-width: 100%; }
+.talking-photo canvas { display: block; border-radius: 50%; border: 3px solid var(--teal); background: var(--tan); transition: box-shadow 0.25s ease; }
+.talking-photo.talking canvas { box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 35%, transparent), 0 0 22px color-mix(in srgb, var(--teal) 45%, transparent); }
+.talking-photo.setup canvas { border-radius: 10px; cursor: crosshair; }
+.talking-photo-help { position: absolute; left: 6px; right: 6px; bottom: 6px; display: grid; gap: 4px; justify-items: center; padding: 6px 8px; border-radius: 8px; background: rgba(20, 30, 40, 0.78); color: #fff; text-align: center; font-size: 11px; pointer-events: none; }
+.talking-photo-help button { pointer-events: auto; background: none; border: 0; color: #8fe3dc; font-size: 10px; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.talking-photo-adjust { position: absolute; right: 2px; bottom: 2px; padding: 2px 7px; border: 1px solid var(--moss); border-radius: 10px; background: var(--warm); color: var(--blue); font-size: 9px; font-weight: 700; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+.talking-photo:hover .talking-photo-adjust, .talking-photo-adjust:focus-visible { opacity: 1; }
 .companion-read { display: grid; gap: 6px; }.companion-read strong { color: var(--blue); font: 700 18px 'Space Grotesk'; }
 .companion-read ul { margin: 0; padding-left: 14px; color: var(--blue); font-size: 11px; line-height: 1.45; }.companion-read ul li + li { margin-top: 4px; }
 .companion-read > button { justify-self: start; padding: 0; font-size: 10px; }
@@ -657,3 +666,24 @@ body, .armor-shell { background: var(--page-gradient); }
   .body-layout { grid-template-columns: 1fr; }
   .body-panel { min-height: 380px; }
 }
+
+/* ---------------------------------------------------------------- floating companion */
+.companion-photo-floating { display: flex; gap: 8px; align-items: center; margin: 0; max-width: 230px; color: var(--blue); font-size: 11px; line-height: 1.4; }
+.companion-photo-floating span { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--teal); animation: voice-pulse 1.6s ease-in-out infinite; }
+.companion-bubble { position: fixed; z-index: 900; touch-action: none; animation: bubble-float 5s ease-in-out infinite; }
+.companion-bubble.dragging { animation: none; }
+.companion-bubble-face { cursor: grab; border-radius: 50%; box-shadow: 0 8px 22px rgba(10, 25, 35, 0.35); outline: none; }
+.companion-bubble.dragging .companion-bubble-face { cursor: grabbing; transform: scale(1.06); }
+.companion-bubble-face:focus-visible { box-shadow: 0 0 0 3px var(--teal), 0 8px 22px rgba(10, 25, 35, 0.35); }
+.companion-bubble .talking-photo canvas { pointer-events: none; }
+.companion-bubble-caption { position: absolute; bottom: calc(100% + 8px); width: max-content; max-width: min(300px, calc(100vw - 32px)); margin: 0; padding: 8px 11px; border: 1px solid var(--moss); border-radius: 12px; background: var(--warm); color: var(--blue); font-size: 12px; line-height: 1.4; box-shadow: 0 6px 18px rgba(10, 25, 35, 0.2); pointer-events: none; }
+.companion-bubble-caption.left { right: 0; border-bottom-right-radius: 3px; }
+.companion-bubble-caption.right { left: 0; border-bottom-left-radius: 3px; }
+.companion-bubble-caption.below { bottom: auto; top: calc(100% + 8px); }
+.companion-bubble-tools { position: absolute; top: -6px; right: -10px; display: flex; flex-direction: column; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+.companion-bubble:hover .companion-bubble-tools, .companion-bubble:focus-within .companion-bubble-tools, .companion-bubble.talking .companion-bubble-tools { opacity: 1; }
+.companion-bubble-tools button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 1px solid var(--moss); border-radius: 50%; background: var(--warm); color: var(--blue); font-size: 11px; line-height: 1; cursor: pointer; }
+.companion-bubble-restore { position: fixed; z-index: 900; right: 14px; bottom: 14px; width: 30px; height: 30px; border: 2px solid var(--teal); border-radius: 50%; background: var(--warm); color: var(--teal); font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(10, 25, 35, 0.25); }
+@keyframes bubble-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
+@media (hover: none) { .companion-bubble-tools { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .companion-bubble { animation: none; } }

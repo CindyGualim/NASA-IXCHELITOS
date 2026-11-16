@@ -8,6 +8,8 @@ const Body3D = lazy(() => import('./Body3D').then(m => ({ default: m.Body3D })))
 import { buildToday, careFor, logQuietly, reasonsFor, SCENARIO_KEY, supportApi, useEngineVersion, useIxchelDay, useScenarios, type DayPayload, type DecisionVM, type DomainVM, type LinkStatus, type ModelNoticeVM, type StatusKind, type TodayVM } from './ixchel'
 import { sensorAnomaliesFor, situationOf, type Situation } from './care'
 import { VoiceBar } from './components/VoiceBar'
+import { FloatingCompanion } from './components/FloatingCompanion'
+import { onOpenCompanion } from './companionStore'
 import { commandOf, useVoice } from './voice'
 import { FORMS, GRIEF_PHASES, SENSOR_CHANNELS } from './content'
 import { CareView } from './views/CareView'
@@ -128,6 +130,7 @@ function App() {
   return (
     <EngineCtx.Provider value={{ status, today }}>
       <Screens scenario={scenario} setScenario={setScenario} missionDay={missionDay} setMissionDay={setMissionDay} data={data} today={today} version={version} />
+      <FloatingCompanion />
     </EngineCtx.Provider>
   )
 }
@@ -219,6 +222,8 @@ function Screens({ scenario, setScenario, missionDay, setMissionDay, data, today
     setView(label as View)
     setDetailOpen(false)
   }
+  // tapping the floating companion opens the conversation (outside the emergency checklist)
+  useEffect(() => onOpenCompanion(() => { if (scenario === 'Emergency' && !postEmergency) return; setView('Care'); setDetailId(null) }), [scenario, postEmergency])
 
   if (scenario === 'Emergency' && !postEmergency) {
     // the emergency is reported to the engine (event "emergencia"): it opens the 72-hour window,
